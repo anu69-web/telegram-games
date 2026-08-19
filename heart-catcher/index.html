@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Heart Catcher</title>
+  <script src="https://telegram.org/js/games.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0f172a;
+      touch-action: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 440px;
+      max-height: 850px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      background: linear-gradient(180deg, #1e1b4b 0%, #311042 100%);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Extract Telegram session data
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get("user_id");
+    const chatId = urlParams.get("chat_id");
+    const messageId = urlParams.get("msg_id");
+    const inlineId = urlParams.get("inline_id");
+    const botToken = urlParams.get("token");
+
+    const LOGICAL_WIDTH = 360;
+    const LOGICAL_HEIGHT = 640;
+    let dpr = window.devicePixelRatio || 1;
+
+    function resizeCanvas() {
+      const container = document.getElementById("game-container");
+      const rect = container.getBoundingClientRect();
+
+      dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(canvas.width / LOGICAL_WIDTH, canvas.height / LOGICAL_HEIGHT);
+      ctx.imageSmoothingEnabled = true;
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 150));
+    resizeCanvas();
+
+    let score = 0;
+    let highscore = parseInt(localStorage.getItem("hc_hi") || "0", 10);
+    let gameOver = false;
+    let gameStarted = false;
+    let speed = 4.2;
+    let frame = 0;
+
+    const player = {
+      x: LOGICAL_WIDTH / 2,
+      y: 540,
+      width: 80,
+      height: 34,
+      speed: 9,
+      dx: 0
+    };
+
+    const GOOD_ITEMS = [
+      { emoji: "💖", pts: 1 },
+      { emoji: "💌", pts: 2 },
+      { emoji: "🌹", pts: 2 },
+      { emoji: "✈️", pts: 3 },
+      { emoji: "💍", pts: 5 },
+    ];
+    const BAD_ITEMS = ["⛈️", "💔", "💣"];
+    let items = [];
+
+    function getCanvasX(clientX) {
+      const rect = canvas.getBoundingClientRect();
+      return ((clientX - rect.left) / rect.width) * LOGICAL_WIDTH;
+    }
+
+    function setPlayerPosition(clientX) {
+      const targetX = getCanvasX(clientX);
+      player.x = Math.max(player.width / 2, Math.min(LOGICAL_WIDTH - player.width / 2, targetX));
+    }
+
+    canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      if (!gameStarted || gameOver) {
+        resetGame();
+        return;
+      }
+      if (e.touches.length > 0) setPlayerPosition(e.touches[0].clientX);
+    }, { passive: false });
+
+    canvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (gameStarted && !gameOver && e.touches.length > 0) {
+        setPlayerPosition(e.touches[0].clientX);
+      }
+    }, { passive: false });
+
+    let isMouseDown = false;
+    canvas.addEventListener("mousedown", (e) => {
+      if (!gameStarted || gameOver) {
+        resetGame();
+        return;
+      }
+      isMouseDown = true;
+      setPlayerPosition(e.clientX);
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (gameStarted && !gameOver && isMouseDown) setPlayerPosition(e.clientX);
+    });
+
+    window.addEventListener("mouseup", () => { isMouseDown = false; });
+
+    function spawnItem() {
+      const isBad = Math.random() < 0.28;
+      const selected = isBad
+        ? { emoji: BAD_ITEMS[Math.floor(Math.random() * BAD_ITEMS.length)], pts: 0, isBad: true }
+        : { ...GOOD_ITEMS[Math.floor(Math.random() * GOOD_ITEMS.length)], isBad: false };
+
+      items.push({
+        x: Math.random() * (LOGICAL_WIDTH - 60) + 30,
+        y: -30,
+        size: 32,
+        isBad: selected.isBad,
+        emoji: selected.emoji,
+        pts: selected.pts,
+        vy: speed + Math.random() * 1.5
+      });
+    }
+
+    function update() {
+      if (!gameStarted || gameOver) return;
+
+      frame++;
+      if (frame % Math.max(20, Math.floor(52 - score * 0.35)) === 0) {
+        spawnItem();
+      }
+
+      player.x += player.dx;
+      player.x = Math.max(player.width / 2, Math.min(LOGICAL_WIDTH - player.width / 2, player.x));
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        item.y += item.vy;
+
+        const hitX = Math.abs(item.x - player.x) < (player.width / 2 + 14);
+        const hitY = item.y >= player.y - 12 && item.y <= player.y + player.height;
+
+        if (hitX && hitY) {
+          if (item.isBad) {
+            endGame();
+            return;
+          } else {
+            score += item.pts;
+            speed += 0.035;
+            items.splice(i, 1);
+            i--;
+            continue;
+          }
+        }
+
+        if (item.y > LOGICAL_HEIGHT + 40) {
+          items.splice(i, 1);
+          i--;
+        }
+      }
+    }
+
+    // Automatically sync score to Telegram's native chat card
+    async function syncTelegramScore(finalScore) {
+      if (!botToken || !userId || finalScore <= 0) return;
+
+      const params = new URLSearchParams({
+        user_id: userId,
+        score: finalScore.toString(),
+        edit_message: "true"
+      });
+
+      if (inlineId) {
+        params.append("inline_message_id", inlineId);
+      } else if (chatId && messageId) {
+        params.append("chat_id", chatId);
+        params.append("message_id", messageId);
+      }
+
+      try {
+        await fetch(`https://api.telegram.org/bot${botToken}/setGameScore?${params.toString()}`);
+      } catch (err) {
+        console.warn("Score sync error:", err);
+      }
+    }
+
+    function endGame() {
+      gameOver = true;
+      if (score > highscore) {
+        highscore = score;
+        localStorage.setItem("hc_hi", highscore);
+      }
+
+      // Auto-submit score to Telegram card
+      syncTelegramScore(score);
+
+      try {
+        if (window.TelegramGameProxy && typeof window.TelegramGameProxy.setScore === "function") {
+          window.TelegramGameProxy.setScore(score);
+        }
+      } catch (e) {}
+    }
+
+    function resetGame() {
+      score = 0;
+      speed = 4.2;
+      items = [];
+      player.x = LOGICAL_WIDTH / 2;
+      player.dx = 0;
+      gameOver = false;
+      gameStarted = true;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+      // Starfield
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fillRect(40, 70, 2, 2);
+      ctx.fillRect(310, 110, 3, 3);
+      ctx.fillRect(180, 220, 2, 2);
+      ctx.fillRect(70, 390, 2, 2);
+      ctx.fillRect(290, 480, 2, 2);
+
+      // Basket
+      ctx.fillStyle = "#ec4899";
+      ctx.beginPath();
+      ctx.roundRect(player.x - player.width / 2, player.y, player.width, player.height, 12);
+      ctx.fill();
+
+      ctx.font = "22px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🧺", player.x, player.y + 17);
+
+      // Items
+      for (const item of items) {
+        ctx.font = `${item.size}px -apple-system, BlinkMacSystemFont, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(item.emoji, item.x, item.y);
+      }
+
+      // HUD
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(`✨ Score: ${score}`, 20, 36);
+
+      ctx.textAlign = "right";
+      ctx.font = "16px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillStyle = "#f472b6";
+      ctx.fillText(`👑 Best: ${highscore}`, LOGICAL_WIDTH - 20, 36);
+
+      // Start Screen
+      if (!gameStarted) {
+        ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+        ctx.fillStyle = "#f43f5e";
+        ctx.font = "bold 32px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("💖 Heart Catcher 💖", LOGICAL_WIDTH / 2, 230);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "15px sans-serif";
+        ctx.fillText("Catch 💖 (+1), 💌 (+2), ✈️ (+3), 💍 (+5)!", LOGICAL_WIDTH / 2, 275);
+        ctx.fillText("Dodge clouds ⛈️ and bombs 💣", LOGICAL_WIDTH / 2, 305);
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 20px sans-serif";
+        ctx.fillText("👉 Tap Screen to Play 👈", LOGICAL_WIDTH / 2, 390);
+      }
+
+      // Game Over Screen
+      if (gameOver) {
+        ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+        ctx.fillStyle = "#f43f5e";
+        ctx.font = "bold 34px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("💔 Game Over!", LOGICAL_WIDTH / 2, 230);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "24px sans-serif";
+        ctx.fillText(`Score: ${score}`, LOGICAL_WIDTH / 2, 280);
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "18px sans-serif";
+        ctx.fillText(`All-Time Best: ${highscore}`, LOGICAL_WIDTH / 2, 315);
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 20px sans-serif";
+        ctx.fillText("👉 Tap to Play Again 👈", LOGICAL_WIDTH / 2, 400);
+      }
+
+      requestAnimationFrame(() => {
+        update();
+        draw();
+      });
+    }
+
+    draw();
+  </script>
+</body>
+</html>

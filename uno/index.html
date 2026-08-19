@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Couple UNO Duel</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://telegram.org/js/games.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --card-bg: rgba(255, 255, 255, 0.06);
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --wild: #a855f7;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-dark) 100%);
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      overflow: hidden;
+      padding: 10px;
+    }
+    #hud {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+    }
+    .player-tag {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .turn-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #94a3b8;
+    }
+    .turn-active {
+      background: #22c55e !important;
+      color: #000 !important;
+      box-shadow: 0 0 12px #22c55e;
+    }
+    .penalty-active {
+      background: #ef4444 !important;
+      color: #fff !important;
+      box-shadow: 0 0 12px #ef4444;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    #partner-hand {
+      display: flex;
+      justify-content: center;
+      gap: -15px;
+      min-height: 70px;
+      width: 100%;
+      max-width: 440px;
+    }
+    .card-back {
+      width: 46px;
+      height: 68px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      margin-left: -12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    #center-board {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 25px;
+      width: 100%;
+      max-width: 440px;
+      margin: auto 0;
+    }
+    #draw-deck {
+      width: 74px;
+      height: 106px;
+      background: linear-gradient(135deg, #334155, #1e293b);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+      font-weight: 800;
+      font-size: 13px;
+      color: #cbd5e1;
+      text-align: center;
+      transition: transform 0.15s ease;
+    }
+    #draw-deck:active { transform: scale(0.95); }
+
+    .uno-card {
+      width: 74px;
+      height: 106px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s ease, filter 0.15s ease;
+      position: relative;
+    }
+    .uno-card:hover { transform: translateY(-8px); }
+    .uno-card:active { transform: scale(0.95); }
+
+    .c-red { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: 2px solid #fca5a5; }
+    .c-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; border: 2px solid #93c5fd; }
+    .c-green { background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; border: 2px solid #86efac; }
+    .c-yellow { background: linear-gradient(135deg, #eab308, #a16207); color: #fff; border: 2px solid #fde047; }
+    .c-wild { background: linear-gradient(135deg, #a855f7, #6b21a8); color: #fff; border: 2px solid #d8b4fe; }
+
+    .card-center { font-size: 26px; line-height: 1; }
+    .card-corner { font-size: 11px; align-self: flex-start; }
+
+    #color-indicator {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    #my-hand-container {
+      width: 100%;
+      max-width: 440px;
+      overflow-x: auto;
+      padding: 10px 4px 18px;
+      display: flex;
+      justify-content: flex-start;
+      gap: 6px;
+      scrollbar-width: none;
+    }
+    #my-hand-container::-webkit-scrollbar { display: none; }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 15, 25, 0.92);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      gap: 16px;
+      z-index: 50;
+    }
+    #overlay h2 {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #38bdf8 0%, #ef4444 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #color-picker-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 60;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .color-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 220px;
+    }
+    .color-btn {
+      height: 65px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 15px;
+      color: #fff;
+    }
+    button.btn-replay {
+      padding: 12px 28px;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    /* Floating Chat Drawer & Buttons */
+    #chat-toggle-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 40;
+    }
+    #chat-unread-dot {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      background: #ef4444;
+      border: 2px solid #0b0f19;
+      border-radius: 50%;
+      display: none;
+    }
+    .reaction-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .reaction-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #chat-drawer {
+      display: none;
+      position: fixed;
+      bottom: 78px;
+      right: 16px;
+      width: 280px;
+      height: 320px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      flex-direction: column;
+      padding: 12px;
+      z-index: 45;
+    }
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+      font-size: 13px;
+      scrollbar-width: none;
+    }
+    #chat-messages::-webkit-scrollbar { display: none; }
+    .msg-bubble {
+      max-width: 80%;
+      padding: 6px 12px;
+      border-radius: 12px;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+    .msg-mine {
+      align-self: flex-end;
+      background: #3b82f6;
+      color: #fff;
+      border-bottom-right-radius: 2px;
+    }
+    .msg-partner {
+      align-self: flex-start;
+      background: #334155;
+      color: #f1f5f9;
+      border-bottom-left-radius: 2px;
+    }
+    #chat-toast {
+      display: none;
+      position: fixed;
+      top: 65px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 35;
+      animation: fadeInOut 3s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      15% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    #chat-input-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    #chat-text-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+    #chat-send-btn {
+      background: #38bdf8;
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-weight: 700;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Notification Toast -->
+  <div id="chat-toast"></div>
+
+  <!-- Top HUD -->
+  <div id="hud">
+    <div class="player-tag">
+      <span style="color: #ff0844;">Partner:</span> <span id="partner-count">7</span> 🎴
+    </div>
+    <div id="turn-badge" class="turn-badge">Waiting ⏳</div>
+    <div class="player-tag">
+      <span style="color: #00f2fe;">You:</span> <span id="my-count">7</span> 🎴
+    </div>
+  </div>
+
+  <!-- Partner Hidden Cards -->
+  <div id="partner-hand"></div>
+
+  <!-- Center Table -->
+  <div id="center-board">
+    <div id="draw-deck" onclick="handleDrawClick()">
+      <span id="draw-deck-label">📥 DRAW</span>
+    </div>
+    <div id="discard-pile"></div>
+  </div>
+
+  <div style="font-size: 12px; color: #94a3b8; font-weight: 600;">
+    Active Color: <span id="color-indicator"></span>
+  </div>
+
+  <!-- Player Hand -->
+  <div id="my-hand-container"></div>
+
+  <!-- Connection & Win Overlay -->
+  <div id="overlay">
+    <h2 id="modal-title">Connecting...</h2>
+    <p id="modal-desc" style="color: #cbd5e1; font-size: 14px;">Waiting for your partner to open the match...</p>
+    <button id="btn-replay" class="btn-replay" style="display: none;" onclick="restartGame()">🔄 Play Again</button>
+  </div>
+
+  <!-- Wild Color Picker Modal -->
+  <div id="color-picker-modal">
+    <h3 style="color: #fff; font-size: 18px; font-weight: 800;">Choose Wild Color:</h3>
+    <div class="color-grid">
+      <button class="color-btn" style="background: var(--red);" onclick="selectWildColor('red')">RED</button>
+      <button class="color-btn" style="background: var(--blue);" onclick="selectWildColor('blue')">BLUE</button>
+      <button class="color-btn" style="background: var(--green);" onclick="selectWildColor('green')">GREEN</button>
+      <button class="color-btn" style="background: var(--yellow);" onclick="selectWildColor('yellow')">YELLOW</button>
+    </div>
+  </div>
+
+  <!-- Floating Chat Toggle Button -->
+  <button id="chat-toggle-btn" onclick="toggleChat()">
+    💬
+    <span id="chat-unread-dot"></span>
+  </button>
+
+  <!-- Floating Chat Drawer -->
+  <div id="chat-drawer">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+      <span style="font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Match Chat</span>
+      <span onclick="toggleChat()" style="cursor: pointer; font-size: 16px; color: #94a3b8;">✕</span>
+    </div>
+
+    <!-- Quick Reactions -->
+    <div class="reaction-bar">
+      <button class="reaction-btn" onclick="sendQuickReaction('❤️')">❤️</button>
+      <button class="reaction-btn" onclick="sendQuickReaction('😂')">😂</button>
+      <button class="reaction-btn" onclick="sendQuickReaction('🔥')">🔥</button>
+      <button class="reaction-btn" onclick="sendQuickReaction('GG!')">GG</button>
+    </div>
+
+    <div id="chat-messages"></div>
+
+    <div id="chat-input-row">
+      <input type="text" id="chat-text-input" placeholder="Type message..." onkeydown="if(event.key==='Enter') sendChatMessage()" />
+      <button id="chat-send-btn" onclick="sendChatMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // Audio Synthesizer (Native Web Audio API)
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      },
+      playDraw() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(140, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      },
+      playCard() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(700, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      },
+      playPenalty() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+        osc.frequency.setValueAtTime(130, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.25);
+      },
+      playWin() {
+        this.init();
+        const notes = [440, 554, 659, 880];
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime + i * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.1 + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + i * 0.1);
+          osc.stop(this.ctx.currentTime + i * 0.1 + 0.3);
+        });
+      }
+    };
+
+    // Context Parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const myUserId = urlParams.get("user_id") || "";
+    const chatId = urlParams.get("chat_id") || "";
+    const msgId = urlParams.get("msg_id") || "";
+    const inlineId = urlParams.get("inline_id") || "";
+    const botToken = urlParams.get("token") || "";
+
+    const PEER_CONFIG = {
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun.cloudflare.com:3478" },
+          { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+          { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+          { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+        ]
+      }
+    };
+
+    function getFixedRoomCode() {
+      const seed = inlineId || (chatId + "_" + msgId) || "couple_uno_duel";
+      let hash = 0;
+      for (let i = 0; i < seed.length; i++) {
+        hash = (hash << 5) - hash + seed.charCodeAt(i);
+        hash |= 0;
+      }
+      return "uno_" + Math.abs(hash).toString(36);
+    }
+
+    const roomCode = getFixedRoomCode();
+
+    const COLORS = ["red", "blue", "green", "yellow"];
+    const VALUES = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "🚫", "🔄", "+2"];
+
+    let role = "spectator";
+    let hostUserId = "";
+    let clientUserId = "";
+
+    let isMyTurn = false;
+    let myHand = [];
+    let partnerCardCount = 7;
+    let topDiscard = null;
+    let activeColor = "";
+    let pendingWildCardIdx = null;
+    let penaltyStack = 0;
+
+    let fullDeck = [];
+    let hostHand = [];
+    let clientHand = [];
+    let discardPile = [];
+    let currentTurnRole = "host";
+
+    let peer = null;
+    let conn = null;
+
+    function createDeck() {
+      const deck = [];
+      COLORS.forEach(color => {
+        VALUES.forEach(val => {
+          deck.push({ color, value: val });
+          if (val !== "0") deck.push({ color, value: val });
+        });
+      });
+      for (let i = 0; i < 4; i++) {
+        deck.push({ color: "wild", value: "🌈" });
+        deck.push({ color: "wild", value: "+4" });
+      }
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    function autoConnect() {
+      peer = new Peer(roomCode, PEER_CONFIG);
+
+      peer.on("open", () => {
+        role = "host";
+        hostUserId = myUserId;
+        document.getElementById("modal-title").innerText = "Waiting for Partner...";
+        document.getElementById("modal-desc").innerText = "Game will start as soon as your partner opens UNO!";
+      });
+
+      peer.on("connection", (c) => {
+        conn = c;
+        setupDataChannel();
+      });
+
+      peer.on("error", (err) => {
+        if (err.type === "unavailable-id") {
+          role = "client";
+          clientUserId = myUserId;
+          peer.destroy();
+          joinAsClient();
+        }
+      });
+    }
+
+    function joinAsClient() {
+      peer = new Peer(PEER_CONFIG);
+      peer.on("open", () => {
+        conn = peer.connect(roomCode);
+        document.getElementById("modal-title").innerText = "Connecting to Host...";
+        setupDataChannel();
+      });
+    }
+
+    function setupDataChannel() {
+      conn.on("open", () => {
+        document.getElementById("overlay").style.display = "none";
+
+        if (role === "client") {
+          conn.send({ type: "HELLO_CLIENT", userId: myUserId });
+        }
+      });
+
+      conn.on("data", (data) => {
+        if (data.type === "CHAT_MESSAGE") {
+          appendMessage(data.text, "partner");
+          if (!isChatOpen) {
+            document.getElementById("chat-unread-dot").style.display = "block";
+            showFloatingToast(data.text);
+          }
+          return;
+        }
+
+        if (role === "host") {
+          if (data.type === "HELLO_CLIENT") {
+            clientUserId = data.userId;
+            conn.send({ type: "HELLO_HOST", userId: hostUserId });
+            startNewMatch();
+          } else if (data.type === "PLAY_CARD") {
+            handleClientPlay(data.cardIdx, data.chosenColor);
+          } else if (data.type === "DRAW_CARD") {
+            handleClientDraw();
+          }
+        } else if (role === "client") {
+          if (data.type === "HELLO_HOST") {
+            hostUserId = data.userId;
+          } else if (data.type === "SYNC_STATE") {
+            const hadFewerCards = data.clientHand.length > myHand.length;
+            myHand = data.clientHand;
+            partnerCardCount = data.hostCardCount;
+            topDiscard = data.topDiscard;
+            activeColor = data.activeColor;
+            penaltyStack = data.penaltyStack;
+            isMyTurn = (data.currentTurnRole === "client");
+
+            if (data.sound === "draw" || hadFewerCards) AudioEngine.playDraw();
+            else if (data.sound === "card") AudioEngine.playCard();
+            else if (data.sound === "penalty") AudioEngine.playPenalty();
+
+            renderGameUI();
+          } else if (data.type === "GAME_OVER") {
+            handleGameOver(data.winnerRole);
+          }
+        }
+      });
+    }
+
+    function startNewMatch() {
+      fullDeck = createDeck();
+      hostHand = fullDeck.splice(0, 7);
+      clientHand = fullDeck.splice(0, 7);
+
+      let firstCard = fullDeck.pop();
+      while (firstCard.color === "wild") {
+        fullDeck.unshift(firstCard);
+        firstCard = fullDeck.pop();
+      }
+      discardPile = [firstCard];
+      topDiscard = firstCard;
+      activeColor = firstCard.color;
+      penaltyStack = 0;
+      currentTurnRole = "host";
+
+      syncStateToClient("draw");
+      myHand = hostHand;
+      partnerCardCount = clientHand.length;
+      isMyTurn = true;
+      AudioEngine.playDraw();
+      renderGameUI();
+    }
+
+    function syncStateToClient(soundType = null) {
+      if (conn && conn.open) {
+        conn.send({
+          type: "SYNC_STATE",
+          clientHand,
+          hostCardCount: hostHand.length,
+          topDiscard,
+          activeColor,
+          penaltyStack,
+          currentTurnRole,
+          sound: soundType
+        });
+      }
+    }
+
+    function drawCardsFor(roleTarget, count) {
+      const drawn = [];
+      for (let i = 0; i < count; i++) {
+        if (fullDeck.length === 0) {
+          const top = discardPile.pop();
+          fullDeck = discardPile.sort(() => Math.random() - 0.5);
+          discardPile = [top];
+        }
+        if (fullDeck.length > 0) drawn.push(fullDeck.pop());
+      }
+      if (roleTarget === "host") hostHand.push(...drawn);
+      else clientHand.push(...drawn);
+    }
+
+    function isValidPlay(card) {
+      if (penaltyStack > 0) {
+        if (topDiscard.value === "+2" && card.value === "+2") return true;
+        if (topDiscard.value === "+4" && card.value === "+4") return true;
+        return false;
+      }
+      if (card.color === "wild") return true;
+      return card.color === activeColor || card.value === topDiscard.value;
+    }
+
+    function executePlay(card, chosenColor, playerRole) {
+      topDiscard = card;
+      discardPile.push(card);
+      activeColor = (card.color === "wild") ? chosenColor : card.color;
+
+      const currentHand = (playerRole === "host") ? hostHand : clientHand;
+
+      if (currentHand.length === 0) {
+        endUnoMatch(playerRole);
+        return;
+      }
+
+      let soundToPlay = "card";
+
+      if (card.value === "+2") {
+        penaltyStack += 2;
+        currentTurnRole = (playerRole === "host") ? "client" : "host";
+        soundToPlay = "penalty";
+      } else if (card.value === "+4") {
+        penaltyStack += 4;
+        currentTurnRole = (playerRole === "host") ? "client" : "host";
+        soundToPlay = "penalty";
+      } else if (card.value === "🚫" || card.value === "🔄") {
+        currentTurnRole = playerRole;
+      } else {
+        currentTurnRole = (playerRole === "host") ? "client" : "host";
+      }
+
+      myHand = hostHand;
+      partnerCardCount = clientHand.length;
+      isMyTurn = (currentTurnRole === "host");
+
+      if (soundToPlay === "penalty") AudioEngine.playPenalty();
+      else AudioEngine.playCard();
+
+      syncStateToClient(soundToPlay);
+      renderGameUI();
+    }
+
+    function handleClientPlay(cardIdx, chosenColor) {
+      const card = clientHand.splice(cardIdx, 1)[0];
+      executePlay(card, chosenColor, "client");
+    }
+
+    function handleClientDraw() {
+      const drawCount = penaltyStack > 0 ? penaltyStack : 1;
+      drawCardsFor("client", drawCount);
+      penaltyStack = 0;
+      currentTurnRole = "host";
+
+      myHand = hostHand;
+      partnerCardCount = clientHand.length;
+      isMyTurn = true;
+
+      AudioEngine.playDraw();
+      syncStateToClient("draw");
+      renderGameUI();
+    }
+
+    function handleCardClick(idx) {
+      if (!isMyTurn) return;
+      const card = myHand[idx];
+      if (!isValidPlay(card)) return;
+
+      if (card.color === "wild") {
+        pendingWildCardIdx = idx;
+        document.getElementById("color-picker-modal").style.display = "flex";
+        return;
+      }
+
+      if (role === "host") {
+        hostHand.splice(idx, 1);
+        executePlay(card, card.color, "host");
+      } else {
+        myHand.splice(idx, 1);
+        AudioEngine.playCard();
+        renderGameUI();
+        conn.send({ type: "PLAY_CARD", cardIdx: idx, chosenColor: card.color });
+      }
+    }
+
+    function selectWildColor(color) {
+      document.getElementById("color-picker-modal").style.display = "none";
+      const idx = pendingWildCardIdx;
+      const card = myHand[idx];
+
+      if (role === "host") {
+        hostHand.splice(idx, 1);
+        executePlay(card, color, "host");
+      } else {
+        myHand.splice(idx, 1);
+        AudioEngine.playCard();
+        renderGameUI();
+        conn.send({ type: "PLAY_CARD", cardIdx: idx, chosenColor: color });
+      }
+    }
+
+    function handleDrawClick() {
+      if (!isMyTurn) return;
+      AudioEngine.playDraw();
+
+      if (role === "host") {
+        const drawCount = penaltyStack > 0 ? penaltyStack : 1;
+        drawCardsFor("host", drawCount);
+        penaltyStack = 0;
+        currentTurnRole = "client";
+        isMyTurn = false;
+        myHand = hostHand;
+        partnerCardCount = clientHand.length;
+        syncStateToClient("draw");
+        renderGameUI();
+      } else {
+        conn.send({ type: "DRAW_CARD" });
+        isMyTurn = false;
+        renderGameUI();
+      }
+    }
+
+    function renderGameUI() {
+      document.getElementById("my-count").innerText = myHand.length;
+      document.getElementById("partner-count").innerText = partnerCardCount;
+
+      const badge = document.getElementById("turn-badge");
+      const deckLabel = document.getElementById("draw-deck-label");
+
+      if (penaltyStack > 0) {
+        badge.innerText = `⚠️ STACK: +${penaltyStack}`;
+        badge.className = "turn-badge penalty-active";
+        deckLabel.innerText = `📥 DRAW +${penaltyStack}`;
+      } else {
+        deckLabel.innerText = "📥 DRAW";
+        if (isMyTurn) {
+          badge.innerText = "👉 YOUR TURN";
+          badge.className = "turn-badge turn-active";
+        } else {
+          badge.innerText = "Partner's Turn";
+          badge.className = "turn-badge";
+        }
+      }
+
+      const colorMap = { red: "var(--red)", blue: "var(--blue)", green: "var(--green)", yellow: "var(--yellow)", wild: "var(--wild)" };
+      document.getElementById("color-indicator").style.background = colorMap[activeColor] || "#fff";
+
+      const discardDiv = document.getElementById("discard-pile");
+      discardDiv.innerHTML = "";
+      if (topDiscard) {
+        discardDiv.appendChild(renderCardElement(topDiscard, false));
+      }
+
+      const partnerDiv = document.getElementById("partner-hand");
+      partnerDiv.innerHTML = "";
+      for (let i = 0; i < partnerCardCount; i++) {
+        const back = document.createElement("div");
+        back.className = "card-back";
+        partnerDiv.appendChild(back);
+      }
+
+      const handDiv = document.getElementById("my-hand-container");
+      handDiv.innerHTML = "";
+      myHand.forEach((card, idx) => {
+        const el = renderCardElement(card, true, idx);
+        handDiv.appendChild(el);
+      });
+    }
+
+    function renderCardElement(card, isClickable, idx = null) {
+      const el = document.createElement("div");
+      el.className = `uno-card c-${card.color}`;
+      el.innerHTML = `
+        <span class="card-corner">${card.value}</span>
+        <span class="card-center">${card.value}</span>
+        <span class="card-corner" style="align-self: flex-end;">${card.value}</span>
+      `;
+      if (isClickable) {
+        el.onclick = () => handleCardClick(idx);
+        if (isMyTurn && isValidPlay(card)) {
+          el.style.boxShadow = "0 0 16px rgba(255, 255, 255, 0.9)";
+          el.style.transform = "translateY(-4px)";
+        }
+      }
+      return el;
+    }
+
+    function endUnoMatch(winnerRole) {
+      if (conn && conn.open) conn.send({ type: "GAME_OVER", winnerRole });
+      handleGameOver(winnerRole);
+      const winningUserId = (winnerRole === "host") ? hostUserId : clientUserId;
+      incrementTelegramWin(winningUserId);
+    }
+
+    function handleGameOver(winnerRole) {
+      const isWinner = (role === winnerRole);
+      if (isWinner) AudioEngine.playWin();
+      document.getElementById("overlay").style.display = "flex";
+      document.getElementById("modal-title").innerText = isWinner ? "🏆 UNO! YOU WON!" : "💔 Partner Won!";
+      document.getElementById("modal-desc").innerText = isWinner ? "You emptied your hand first!" : "Partner called UNO and emptied their hand!";
+      document.getElementById("btn-replay").style.display = (role === "host") ? "inline-block" : "none";
+    }
+
+    function restartGame() {
+      document.getElementById("overlay").style.display = "none";
+      if (role === "host") startNewMatch();
+    }
+
+    async function incrementTelegramWin(targetUserId) {
+      if (!botToken || !targetUserId) return;
+      const targetIdNum = parseInt(targetUserId, 10);
+      if (isNaN(targetIdNum)) return;
+
+      let currentScore = 0;
+      try {
+        const getUrl = `https://api.telegram.org/bot${botToken}/getGameHighScores`;
+        const getBody = {
+          user_id: targetIdNum,
+          ...(inlineId ? { inline_message_id: inlineId } : { chat_id: parseInt(chatId, 10), message_id: parseInt(msgId, 10) })
+        };
+        const res = await fetch(getUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(getBody)
+        });
+        const data = await res.json();
+        if (data.ok && data.result) {
+          const userScoreObj = data.result.find(s => s.user.id === targetIdNum);
+          if (userScoreObj) currentScore = userScoreObj.score;
+        }
+      } catch (e) {}
+
+      const newScore = currentScore + 1;
+      try {
+        const setUrl = `https://api.telegram.org/bot${botToken}/setGameScore`;
+        const setBody = {
+          user_id: targetIdNum,
+          score: newScore,
+          force: true,
+          edit_message: true,
+          ...(inlineId ? { inline_message_id: inlineId } : { chat_id: parseInt(chatId, 10), message_id: parseInt(msgId, 10) })
+        };
+        await fetch(setUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(setBody)
+        });
+      } catch (e) {}
+    }
+
+    // In-Game Chat Functions
+    let isChatOpen = false;
+
+    function toggleChat() {
+      isChatOpen = !isChatOpen;
+      document.getElementById("chat-drawer").style.display = isChatOpen ? "flex" : "none";
+      if (isChatOpen) {
+        document.getElementById("chat-unread-dot").style.display = "none";
+        document.getElementById("chat-text-input").focus();
+      }
+    }
+
+    function sendQuickReaction(text) {
+      sendRawMessage(text);
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById("chat-text-input");
+      const text = input.value.trim();
+      if (!text) return;
+      sendRawMessage(text);
+      input.value = "";
+    }
+
+    function sendRawMessage(text) {
+      if (!conn || !conn.open) return;
+      appendMessage(text, "mine");
+      conn.send({ type: "CHAT_MESSAGE", text });
+    }
+
+    function appendMessage(text, sender) {
+      const container = document.getElementById("chat-messages");
+      const bubble = document.createElement("div");
+      bubble.className = `msg-bubble msg-${sender}`;
+      bubble.innerText = text;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function showFloatingToast(text) {
+      const toast = document.getElementById("chat-toast");
+      toast.innerText = `Partner: ${text}`;
+      toast.style.display = "block";
+      toast.style.animation = "none";
+      toast.offsetHeight;
+      toast.style.animation = "fadeInOut 3s forwards";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 3000);
+    }
+
+    autoConnect();
+  </script>
+</body>
+</html>

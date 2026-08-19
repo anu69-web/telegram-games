@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Snakes & Ladders Classic</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://telegram.org/js/games.js"></script>
+  <style>
+    :root {
+      --p1-color: #00f2fe;
+      --p2-color: #ff0844;
+      --bg-dark: #0b0f19;
+      --card-bg: rgba(255, 255, 255, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-dark) 100%);
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      overflow: hidden;
+      padding: 8px 10px;
+    }
+    #hud {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+    }
+    .player-tag {
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .turn-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #94a3b8;
+    }
+    .turn-active {
+      background: #22c55e !important;
+      color: #000 !important;
+      box-shadow: 0 0 12px #22c55e;
+    }
+
+    #board-container {
+      position: relative;
+      width: 95vw;
+      max-width: 400px;
+      height: 95vw;
+      max-height: 400px;
+      background: url("board.jpg") no-repeat center center;
+      background-size: cover;
+      border: 3px solid #0f172a;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+      border-radius: 10px;
+    }
+
+    #controls-area {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+    }
+    .dice-scene {
+      width: 52px;
+      height: 52px;
+      perspective: 300px;
+      cursor: pointer;
+    }
+    .dice-cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    }
+    .dice-face {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      display: grid;
+      grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+      padding: 5px;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.1);
+    }
+    .dot {
+      background: #0f172a;
+      border-radius: 50%;
+      align-self: center;
+      justify-self: center;
+      width: 9px;
+      height: 9px;
+    }
+    .dot.red { background: #ef4444; width: 11px; height: 11px; }
+
+    .face-1 { transform: rotateY(0deg) translateZ(26px); }
+    .face-2 { transform: rotateY(-90deg) translateZ(26px); }
+    .face-3 { transform: rotateY(-180deg) translateZ(26px); }
+    .face-4 { transform: rotateY(90deg) translateZ(26px); }
+    .face-5 { transform: rotateX(-90deg) translateZ(26px); }
+    .face-6 { transform: rotateX(90deg) translateZ(26px); }
+
+    .rolling {
+      animation: diceTumble 0.8s ease-in-out infinite;
+    }
+    @keyframes diceTumble {
+      0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+      50% { transform: rotateX(360deg) rotateY(180deg) rotateZ(180deg); }
+      100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
+    }
+
+    .status-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+      line-height: 1.4;
+      flex: 1;
+      margin-left: 14px;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 15, 25, 0.94);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      gap: 16px;
+      z-index: 50;
+    }
+    #overlay h2 {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #38bdf8 0%, #ef4444 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    button.btn-replay {
+      padding: 12px 28px;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    #chat-toggle-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 40;
+    }
+    #chat-unread-dot {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      background: #ef4444;
+      border: 2px solid #0b0f19;
+      border-radius: 50%;
+      display: none;
+    }
+    .reaction-bar { display: flex; gap: 6px; margin-bottom: 8px; }
+    .reaction-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #chat-drawer {
+      display: none;
+      position: fixed;
+      bottom: 78px;
+      right: 16px;
+      width: 280px;
+      height: 320px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      flex-direction: column;
+      padding: 12px;
+      z-index: 45;
+    }
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+      font-size: 13px;
+      scrollbar-width: none;
+    }
+    #chat-messages::-webkit-scrollbar { display: none; }
+    .msg-bubble {
+      max-width: 80%;
+      padding: 6px 12px;
+      border-radius: 12px;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+    .msg-mine { align-self: flex-end; background: #3b82f6; color: #fff; border-bottom-right-radius: 2px; }
+    .msg-partner { align-self: flex-start; background: #334155; color: #f1f5f9; border-bottom-left-radius: 2px; }
+    #chat-toast {
+      display: none;
+      position: fixed;
+      top: 65px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 35;
+      animation: fadeInOut 3s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      15%, 85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    #chat-input-row { display: flex; gap: 6px; margin-top: 8px; }
+    #chat-text-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+    #chat-send-btn {
+      background: #38bdf8;
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-weight: 700;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="chat-toast"></div>
+
+  <div id="hud">
+    <div class="player-tag">
+      <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--p1-color);"></span>
+      <span id="p1-title">P1:</span> <span id="p1-tile">Home (Locked)</span>
+    </div>
+    <div id="turn-badge" class="turn-badge">Connecting ⏳</div>
+    <div class="player-tag">
+      <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--p2-color);"></span>
+      <span id="p2-title">P2:</span> <span id="p2-tile">Home (Locked)</span>
+    </div>
+  </div>
+
+  <div id="board-container">
+    <canvas id="boardCanvas" width="600" height="600"></canvas>
+  </div>
+
+  <div id="controls-area">
+    <div class="dice-scene" onclick="handleDiceClick()">
+      <div id="dice-cube" class="dice-cube">
+        <div class="dice-face face-1">
+          <div></div><div></div><div></div>
+          <div></div><div class="dot red"></div><div></div>
+          <div></div><div></div><div></div>
+        </div>
+        <div class="dice-face face-2">
+          <div class="dot"></div><div></div><div></div>
+          <div></div><div></div><div></div>
+          <div></div><div></div><div class="dot"></div>
+        </div>
+        <div class="dice-face face-3">
+          <div class="dot"></div><div></div><div></div>
+          <div></div><div class="dot"></div><div></div>
+          <div></div><div></div><div class="dot"></div>
+        </div>
+        <div class="dice-face face-4">
+          <div class="dot"></div><div></div><div class="dot"></div>
+          <div></div><div></div><div></div>
+          <div class="dot"></div><div></div><div class="dot"></div>
+        </div>
+        <div class="dice-face face-5">
+          <div class="dot"></div><div></div><div class="dot"></div>
+          <div></div><div class="dot"></div><div></div>
+          <div class="dot"></div><div></div><div class="dot"></div>
+        </div>
+        <div class="dice-face face-6">
+          <div class="dot"></div><div></div><div class="dot"></div>
+          <div class="dot"></div><div></div><div class="dot"></div>
+          <div class="dot"></div><div></div><div class="dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="status-text" id="action-status">Waiting for partner to join...</div>
+  </div>
+
+  <div id="overlay">
+    <h2 id="modal-title">Connecting...</h2>
+    <p id="modal-desc" style="color: #cbd5e1; font-size: 14px;">Waiting for your partner to open the game...</p>
+    <button id="btn-replay" class="btn-replay" style="display: none;" onclick="restartMatch()">🔄 Play Again</button>
+  </div>
+
+  <button id="chat-toggle-btn" onclick="toggleChat()">
+    💬
+    <span id="chat-unread-dot"></span>
+  </button>
+
+  <div id="chat-drawer">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+      <span style="font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Match Chat</span>
+      <span onclick="toggleChat()" style="cursor: pointer; font-size: 16px; color: #94a3b8;">✕</span>
+    </div>
+    <div class="reaction-bar">
+      <button class="reaction-btn" onclick="sendQuickReaction('🎲')">🎲</button>
+      <button class="reaction-btn" onclick="sendQuickReaction('🐍')">🐍</button>
+      <button class="reaction-btn" onclick="sendQuickReaction('🪜')">🪜</button>
+      <button class="reaction-btn" onclick="sendQuickReaction('GG!')">GG</button>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="chat-input-row">
+      <input type="text" id="chat-text-input" placeholder="Type message..." onkeydown="if(event.key==='Enter') sendChatMessage()" />
+      <button id="chat-send-btn" onclick="sendChatMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      },
+      playHop() {
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(540, this.ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.08);
+        } catch(e){}
+      },
+      playDice() {
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(380, this.ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.2);
+        } catch(e){}
+      },
+      playLadder() {
+        try {
+          this.init();
+          [261.63, 329.63, 392.00, 523.25].forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.25, this.ctx.currentTime + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.08 + 0.2);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + i * 0.08);
+            osc.stop(this.ctx.currentTime + i * 0.08 + 0.2);
+          });
+        } catch(e){}
+      },
+      playSnake() {
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.35);
+          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.35);
+        } catch(e){}
+      },
+      playWin() {
+        try {
+          this.init();
+          [440, 554, 659, 880].forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.25, this.ctx.currentTime + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.1 + 0.3);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + i * 0.1);
+            osc.stop(this.ctx.currentTime + i * 0.1 + 0.3);
+          });
+        } catch(e){}
+      }
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const myUserId = urlParams.get("user_id") || "";
+    const chatId = urlParams.get("chat_id") || "";
+    const msgId = urlParams.get("msg_id") || "";
+    const inlineId = urlParams.get("inline_id") || "";
+    const botToken = urlParams.get("token") || "";
+
+    const PEER_CONFIG = {
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun.cloudflare.com:3478" },
+          { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+          { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+          { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+        ]
+      }
+    };
+
+    function getBaseRoomCode() {
+      const seed = inlineId || (chatId + "_" + msgId) || "couple_snakes_duel";
+      let hash = 0;
+      for (let i = 0; i < seed.length; i++) {
+        hash = (hash << 5) - hash + seed.charCodeAt(i);
+        hash |= 0;
+      }
+      return "snakes_" + Math.abs(hash).toString(36);
+    }
+
+    const hostRoomId = getBaseRoomCode();
+
+    const LADDERS = { 7: 36, 21: 58, 31: 51, 34: 84, 54: 89, 63: 82 };
+    const SNAKES = { 33: 5, 56: 20, 43: 24, 66: 12, 78: 59, 96: 72 };
+
+    let p1Tile = 0;
+    let p2Tile = 0;
+    let p1RenderPos = { x: 30, y: 570, hopOffset: 0 };
+    let p2RenderPos = { x: 30, y: 570, hopOffset: 0 };
+
+    let role = "host";
+    let hostUserId = myUserId;
+    let clientUserId = "";
+
+    let currentTurnRole = "host";
+    let isDiceRolling = false;
+    let isAnimatingMove = false;
+    let rolledNumber = 0;
+
+    let peer = null;
+    let conn = null;
+
+    const canvas = document.getElementById("boardCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function getTileCenter(tileNum) {
+      if (tileNum <= 0) return { x: 30, y: 570 };
+      const index = tileNum - 1;
+      const rowFromBottom = Math.floor(index / 10);
+      const col = index % 10;
+      const actualCol = (rowFromBottom % 2 === 0) ? col : (9 - col);
+      const actualRow = 9 - rowFromBottom;
+      const tileSize = 60;
+      return {
+        x: actualCol * tileSize + tileSize / 2,
+        y: actualRow * tileSize + tileSize / 2
+      };
+    }
+
+    const DICE_ORIENTATIONS = {
+      1: "rotateY(0deg) rotateX(0deg)",
+      2: "rotateY(-90deg) rotateX(0deg)",
+      3: "rotateY(-180deg) rotateX(0deg)",
+      4: "rotateY(90deg) rotateX(0deg)",
+      5: "rotateX(-90deg) rotateY(0deg)",
+      6: "rotateX(90deg) rotateY(0deg)"
+    };
+
+    function autoConnect() {
+      peer = new Peer(hostRoomId, PEER_CONFIG);
+
+      peer.on("open", () => {
+        role = "host";
+        hostUserId = myUserId;
+        document.getElementById("p1-title").innerText = "You (P1):";
+        document.getElementById("p2-title").innerText = "Partner (P2):";
+        document.getElementById("modal-title").innerText = "Waiting for Partner...";
+        document.getElementById("modal-desc").innerText = "Game will start as soon as your partner opens the game!";
+      });
+
+      peer.on("connection", (c) => {
+        conn = c;
+        setupDataChannel();
+      });
+
+      peer.on("error", (err) => {
+        if (err.type === "unavailable-id") {
+          role = "client";
+          clientUserId = myUserId;
+          peer.destroy();
+          joinAsClient();
+        }
+      });
+    }
+
+    function joinAsClient() {
+      peer = new Peer(PEER_CONFIG);
+      peer.on("open", () => {
+        conn = peer.connect(hostRoomId, { reliable: true });
+        document.getElementById("p1-title").innerText = "Partner (P1):";
+        document.getElementById("p2-title").innerText = "You (P2):";
+        document.getElementById("modal-title").innerText = "Connecting to Host...";
+        setupDataChannel();
+      });
+    }
+
+    function setupDataChannel() {
+      conn.on("open", () => {
+        document.getElementById("overlay").style.display = "none";
+        document.getElementById("turn-badge").innerText = "Match Active ⚡";
+
+        if (role === "client") {
+          conn.send({ type: "HELLO_CLIENT", userId: myUserId });
+        }
+      });
+
+      conn.on("data", (data) => {
+        if (data.type === "CHAT_MESSAGE") {
+          appendMessage(data.text, "partner");
+          if (!isChatOpen) {
+            document.getElementById("chat-unread-dot").style.display = "block";
+            showFloatingToast(data.text);
+          }
+          return;
+        }
+
+        if (role === "host") {
+          if (data.type === "HELLO_CLIENT") {
+            clientUserId = data.userId;
+            conn.send({
+              type: "INIT_STATE",
+              hostUserId,
+              p1Tile,
+              p2Tile,
+              currentTurnRole
+            });
+            startNewMatch();
+          } else if (data.type === "ROLL_DICE_REQ") {
+            handleDiceRoll("client");
+          }
+        } else if (role === "client") {
+          if (data.type === "INIT_STATE") {
+            document.getElementById("overlay").style.display = "none";
+            hostUserId = data.hostUserId;
+            p1Tile = data.p1Tile;
+            p2Tile = data.p2Tile;
+            p1RenderPos = getTileCenter(p1Tile);
+            p2RenderPos = getTileCenter(p2Tile);
+            currentTurnRole = data.currentTurnRole;
+            rolledNumber = 0;
+            isDiceRolling = false;
+            isAnimatingMove = false;
+            updateStatusText();
+          } else if (data.type === "DICE_ROLLED") {
+            animateDiceRoll(data.rollVal);
+            rolledNumber = data.rollVal;
+            updateStatusText();
+          } else if (data.type === "SYNC_TURN") {
+            currentTurnRole = data.nextTurnRole;
+            rolledNumber = 0;
+            isDiceRolling = false;
+            updateStatusText();
+          } else if (data.type === "START_MOVE") {
+            executeStepByStepHop(data.playerRole, data.path, data.finalTile, data.specialType, data.nextTurnRole);
+          } else if (data.type === "GAME_OVER") {
+            handleGameOver(data.winnerRole);
+          }
+        }
+      });
+
+      conn.on("close", () => {
+        document.getElementById("overlay").style.display = "flex";
+        document.getElementById("modal-title").innerText = "Partner Disconnected";
+        document.getElementById("modal-desc").innerText = "Waiting for reconnection...";
+      });
+    }
+
+    function startNewMatch() {
+      p1Tile = 0;
+      p2Tile = 0;
+      p1RenderPos = getTileCenter(0);
+      p2RenderPos = getTileCenter(0);
+      currentTurnRole = "host";
+      rolledNumber = 0;
+      isDiceRolling = false;
+      isAnimatingMove = false;
+
+      if (conn && conn.open) {
+        conn.send({
+          type: "INIT_STATE",
+          hostUserId,
+          p1Tile,
+          p2Tile,
+          currentTurnRole
+        });
+      }
+
+      updateStatusText();
+    }
+
+    function handleDiceClick() {
+      const isMyTurn = (role === currentTurnRole);
+      if (!isMyTurn || isDiceRolling || isAnimatingMove) return;
+
+      if (role === "host") {
+        handleDiceRoll("host");
+      } else {
+        conn.send({ type: "ROLL_DICE_REQ" });
+      }
+    }
+
+    function handleDiceRoll(playerRole) {
+      isDiceRolling = true;
+      const rollVal = Math.floor(Math.random() * 6) + 1;
+      rolledNumber = rollVal;
+
+      const currentTile = playerRole === "host" ? p1Tile : p2Tile;
+      
+      let canMove = false;
+      if (currentTile === 0) {
+        canMove = (rollVal === 1);
+      } else {
+        canMove = (currentTile + rollVal <= 100);
+      }
+
+      if (conn && conn.open) {
+        conn.send({ type: "DICE_ROLLED", rollVal, canMove });
+      }
+
+      animateDiceRoll(rollVal);
+
+      setTimeout(() => {
+        isDiceRolling = false;
+        if (canMove) {
+          executeMove(playerRole, rollVal);
+        } else {
+          // Rule: Only 6 grants another turn. All other numbers (including 5) swap turn.
+          const nextTurnRole = (rollVal === 6) ? playerRole : (playerRole === "host" ? "client" : "host");
+          currentTurnRole = nextTurnRole;
+          rolledNumber = 0;
+
+          if (conn && conn.open) {
+            conn.send({ type: "SYNC_TURN", nextTurnRole });
+          }
+
+          updateStatusText();
+        }
+      }, 750);
+    }
+
+    function animateDiceRoll(rollVal) {
+      AudioEngine.playDice();
+      const cube = document.getElementById("dice-cube");
+      cube.classList.add("rolling");
+
+      setTimeout(() => {
+        cube.classList.remove("rolling");
+        cube.style.transform = DICE_ORIENTATIONS[rollVal];
+        updateStatusText();
+      }, 700);
+    }
+
+    function executeMove(playerRole, rollVal) {
+      const startTile = playerRole === "host" ? p1Tile : p2Tile;
+      const path = [];
+      let finalTile = startTile;
+
+      if (startTile === 0 && rollVal === 1) {
+        path.push(1);
+        finalTile = 1;
+      } else {
+        for (let s = 1; s <= rollVal; s++) {
+          path.push(startTile + s);
+        }
+        finalTile = startTile + rollVal;
+      }
+
+      let specialType = 0;
+      if (LADDERS[finalTile]) {
+        finalTile = LADDERS[finalTile];
+        specialType = 1;
+      } else if (SNAKES[finalTile]) {
+        finalTile = SNAKES[finalTile];
+        specialType = 2;
+      }
+
+      // Rule: Strict === 6 check for extra roll
+      const nextTurnRole = (rollVal === 6) ? playerRole : (playerRole === "host" ? "client" : "host");
+
+      if (conn && conn.open) {
+        conn.send({
+          type: "START_MOVE",
+          playerRole,
+          path,
+          finalTile,
+          specialType,
+          nextTurnRole
+        });
+      }
+
+      executeStepByStepHop(playerRole, path, finalTile, specialType, nextTurnRole);
+    }
+
+    async function executeStepByStepHop(playerRole, path, finalTile, specialType, nextTurnRole) {
+      isAnimatingMove = true;
+      updateStatusText();
+
+      for (const stepTile of path) {
+        if (playerRole === "host") p1Tile = stepTile;
+        else p2Tile = stepTile;
+
+        const targetCoords = getTileCenter(stepTile);
+        await hopToCoordinate(playerRole, targetCoords);
+        AudioEngine.playHop();
+        await new Promise(r => setTimeout(r, 60));
+      }
+
+      if (specialType > 0) {
+        await new Promise(r => setTimeout(r, 180));
+        if (specialType === 1) AudioEngine.playLadder();
+        else if (specialType === 2) AudioEngine.playSnake();
+
+        if (playerRole === "host") p1Tile = finalTile;
+        else p2Tile = finalTile;
+
+        const finalCoords = getTileCenter(finalTile);
+        await glideToCoordinate(playerRole, finalCoords);
+      }
+
+      document.getElementById("p1-tile").innerText = p1Tile === 0 ? "Home (Locked)" : `Tile ${p1Tile}`;
+      document.getElementById("p2-tile").innerText = p2Tile === 0 ? "Home (Locked)" : `Tile ${p2Tile}`;
+
+      isAnimatingMove = false;
+      rolledNumber = 0;
+      currentTurnRole = nextTurnRole;
+      updateStatusText();
+
+      if (finalTile === 100) {
+        endSnakesMatch(playerRole);
+      }
+    }
+
+    function hopToCoordinate(playerRole, target) {
+      return new Promise((resolve) => {
+        const startPos = playerRole === "host" ? { ...p1RenderPos } : { ...p2RenderPos };
+        const duration = 220;
+        const startTime = performance.now();
+
+        function animate(now) {
+          const elapsed = now - startTime;
+          const progress = Math.min(1, elapsed / duration);
+
+          const curX = startPos.x + (target.x - startPos.x) * progress;
+          const curY = startPos.y + (target.y - startPos.y) * progress;
+          const hop = Math.sin(progress * Math.PI) * 22;
+
+          if (playerRole === "host") {
+            p1RenderPos = { x: curX, y: curY, hopOffset: hop };
+          } else {
+            p2RenderPos = { x: curX, y: curY, hopOffset: hop };
+          }
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            if (playerRole === "host") p1RenderPos.hopOffset = 0;
+            else p2RenderPos.hopOffset = 0;
+            resolve();
+          }
+        }
+        requestAnimationFrame(animate);
+      });
+    }
+
+    function glideToCoordinate(playerRole, target) {
+      return new Promise((resolve) => {
+        const startPos = playerRole === "host" ? { ...p1RenderPos } : { ...p2RenderPos };
+        const duration = 400;
+        const startTime = performance.now();
+
+        function animate(now) {
+          const elapsed = now - startTime;
+          const progress = Math.min(1, elapsed / duration);
+
+          const curX = startPos.x + (target.x - startPos.x) * progress;
+          const curY = startPos.y + (target.y - startPos.y) * progress;
+
+          if (playerRole === "host") {
+            p1RenderPos = { x: curX, y: curY, hopOffset: 0 };
+          } else {
+            p2RenderPos = { x: curX, y: curY, hopOffset: 0 };
+          }
+
+          if (progress < 1) requestAnimationFrame(animate);
+          else resolve();
+        }
+        requestAnimationFrame(animate);
+      });
+    }
+
+    function updateStatusText() {
+      const isMyTurn = (role === currentTurnRole);
+      const statusText = document.getElementById("action-status");
+      const turnBadge = document.getElementById("turn-badge");
+      const myTile = (role === "host") ? p1Tile : p2Tile;
+
+      if (isMyTurn) {
+        turnBadge.innerText = "👉 YOUR TURN";
+        turnBadge.className = "turn-badge turn-active";
+
+        if (isDiceRolling) {
+          statusText.innerText = "Rolling dice...";
+        } else if (isAnimatingMove) {
+          statusText.innerText = `Moving ${rolledNumber} tiles...`;
+        } else {
+          statusText.innerText = (myTile === 0) 
+            ? "Tap dice! (Roll 1 to unlock onto board)" 
+            : "Tap the 3D dice to roll!";
+        }
+      } else {
+        turnBadge.innerText = "Partner's Turn";
+        turnBadge.className = "turn-badge";
+        statusText.innerText = isAnimatingMove ? "Partner is moving..." : "Waiting for partner to roll...";
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // P1 (Cyan Token)
+      const p1X = p1RenderPos.x - (p1Tile === p2Tile && p1Tile > 0 ? 8 : 0);
+      const p1Y = p1RenderPos.y - p1RenderPos.hopOffset;
+      ctx.fillStyle = "#00f2fe";
+      ctx.shadowColor = "rgba(0, 242, 254, 0.7)";
+      ctx.shadowBlur = (role === "host" && currentTurnRole === "host") ? 16 : 6;
+      ctx.beginPath();
+      ctx.arc(p1X, p1Y, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // P2 (Red Token)
+      const p2X = p2RenderPos.x + (p1Tile === p2Tile && p1Tile > 0 ? 8 : 0);
+      const p2Y = p2RenderPos.y - p2RenderPos.hopOffset;
+      ctx.fillStyle = "#ff0844";
+      ctx.shadowColor = "rgba(255, 8, 68, 0.7)";
+      ctx.shadowBlur = (role === "client" && currentTurnRole === "client") ? 16 : 6;
+      ctx.beginPath();
+      ctx.arc(p2X, p2Y, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      requestAnimationFrame(render);
+    }
+
+    function endSnakesMatch(winnerRole) {
+      if (conn && conn.open) conn.send({ type: "GAME_OVER", winnerRole });
+      handleGameOver(winnerRole);
+      const winningUserId = (winnerRole === "host") ? hostUserId : clientUserId;
+      incrementTelegramWin(winningUserId);
+    }
+
+    function handleGameOver(winnerRole) {
+      const isWinner = (role === winnerRole);
+      if (isWinner) AudioEngine.playWin();
+      document.getElementById("overlay").style.display = "flex";
+      document.getElementById("modal-title").innerText = isWinner ? "🏆 YOU REACHED 100!" : "💔 Partner Won!";
+      document.getElementById("modal-desc").innerText = isWinner ? "You conquered the board and reached Tile 100!" : "Partner conquered Tile 100!";
+      document.getElementById("btn-replay").style.display = (role === "host") ? "inline-block" : "none";
+    }
+
+    function restartMatch() {
+      document.getElementById("overlay").style.display = "none";
+      if (role === "host") startNewMatch();
+    }
+
+    async function incrementTelegramWin(targetUserId) {
+      if (!botToken || !targetUserId) return;
+      const targetIdNum = parseInt(targetUserId, 10);
+      if (isNaN(targetIdNum)) return;
+
+      let currentScore = 0;
+      try {
+        const getUrl = `https://api.telegram.org/bot${botToken}/getGameHighScores`;
+        const getBody = {
+          user_id: targetIdNum,
+          ...(inlineId ? { inline_message_id: inlineId } : { chat_id: parseInt(chatId, 10), message_id: parseInt(msgId, 10) })
+        };
+        const res = await fetch(getUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(getBody)
+        });
+        const data = await res.json();
+        if (data.ok && data.result) {
+          const userScoreObj = data.result.find(s => s.user.id === targetIdNum);
+          if (userScoreObj) currentScore = userScoreObj.score;
+        }
+      } catch (e) {}
+
+      const newScore = currentScore + 1;
+      try {
+        const setUrl = `https://api.telegram.org/bot${botToken}/setGameScore`;
+        const setBody = {
+          user_id: targetIdNum,
+          score: newScore,
+          force: true,
+          edit_message: true,
+          ...(inlineId ? { inline_message_id: inlineId } : { chat_id: parseInt(chatId, 10), message_id: parseInt(msgId, 10) })
+        };
+        await fetch(setUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(setBody)
+        });
+      } catch (e) {}
+    }
+
+    let isChatOpen = false;
+    function toggleChat() {
+      isChatOpen = !isChatOpen;
+      document.getElementById("chat-drawer").style.display = isChatOpen ? "flex" : "none";
+      if (isChatOpen) {
+        document.getElementById("chat-unread-dot").style.display = "none";
+        document.getElementById("chat-text-input").focus();
+      }
+    }
+
+    function sendQuickReaction(text) { sendRawMessage(text); }
+
+    function sendChatMessage() {
+      const input = document.getElementById("chat-text-input");
+      const text = input.value.trim();
+      if (!text) return;
+      sendRawMessage(text);
+      input.value = "";
+    }
+
+    function sendRawMessage(text) {
+      if (!conn || !conn.open) return;
+      appendMessage(text, "mine");
+      conn.send({ type: "CHAT_MESSAGE", text });
+    }
+
+    function appendMessage(text, sender) {
+      const container = document.getElementById("chat-messages");
+      const bubble = document.createElement("div");
+      bubble.className = `msg-bubble msg-${sender}`;
+      bubble.innerText = text;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function showFloatingToast(text) {
+      const toast = document.getElementById("chat-toast");
+      toast.innerText = `Partner: ${text}`;
+      toast.style.display = "block";
+      toast.style.animation = "none";
+      toast.offsetHeight;
+      toast.style.animation = "fadeInOut 3s forwards";
+      setTimeout(() => { toast.style.display = "none"; }, 3000);
+    }
+
+    render();
+    autoConnect();
+  </script>
+</body>
+</html>
