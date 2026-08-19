@@ -207,22 +207,37 @@
     // Automatically sync score to Telegram's native chat card
     async function syncTelegramScore(finalScore) {
       if (!botToken || !userId || finalScore <= 0) return;
+      const targetIdNum = parseInt(userId, 10);
+      if (isNaN(targetIdNum) || targetIdNum <= 0) return;
 
-      const params = new URLSearchParams({
-        user_id: userId,
-        score: finalScore.toString(),
-        edit_message: "true"
-      });
+      const body = {
+        user_id: targetIdNum,
+        score: parseInt(finalScore, 10),
+        force: true,
+        disable_edit_message: false
+      };
 
-      if (inlineId) {
-        params.append("inline_message_id", inlineId);
+      if (inlineId && inlineId.trim() !== "" && inlineId !== "null" && inlineId !== "undefined") {
+        body.inline_message_id = inlineId.trim();
       } else if (chatId && messageId) {
-        params.append("chat_id", chatId);
-        params.append("message_id", messageId);
+        const cId = parseInt(chatId, 10);
+        const mId = parseInt(messageId, 10);
+        if (!isNaN(cId) && !isNaN(mId)) {
+          body.chat_id = cId;
+          body.message_id = mId;
+        } else {
+          return;
+        }
+      } else {
+        return;
       }
 
       try {
-        await fetch(`https://api.telegram.org/bot${botToken}/setGameScore?${params.toString()}`);
+        await fetch(`https://api.telegram.org/bot${botToken}/setGameScore`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
       } catch (err) {
         console.warn("Score sync error:", err);
       }

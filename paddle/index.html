@@ -450,11 +450,12 @@
       }
     }
 
+    let winLogged = false;
+
     function endGame(winnerRole, winningUserId) {
       isRunning = false;
       if (conn && conn.open) conn.send({ type: "GAME_OVER", winnerRole });
       handleGameOver(winnerRole);
-      incrementTelegramWin(winningUserId);
     }
 
     function handleGameOver(winnerRole) {
@@ -468,10 +469,16 @@
       document.getElementById("overlay-anim").style.display = "none";
       document.getElementById("modal-title").innerText = title;
       document.getElementById("modal-desc").innerText = desc;
-      document.getElementById("btn-replay").style.display = "inline-block";
+      document.getElementById("btn-replay").style.display = (role === "host") ? "inline-block" : "none";
+
+      const winningUserId = (winnerRole === "host") ? hostUserId : clientUserId;
+      if (!winLogged && (role === "host" || role === winnerRole)) {
+        incrementTelegramWin(winningUserId);
+      }
     }
 
     function resetLocalUI() {
+      winLogged = false;
       hostLives = MAX_LIVES;
       clientLives = MAX_LIVES;
       updateHeartsUI();
@@ -560,30 +567,45 @@
     }
 
     async function incrementTelegramWin(targetUserId) {
-      if (!botToken || !targetUserId) return;
+      if (!botToken || !targetUserId || winLogged) return;
+      winLogged = true;
 
       const targetIdNum = parseInt(targetUserId, 10);
-      if (isNaN(targetIdNum)) return;
+      if (isNaN(targetIdNum) || targetIdNum <= 0) return;
+
+      const basePayload = {};
+      if (inlineId && inlineId.trim() !== "" && inlineId !== "null" && inlineId !== "undefined") {
+        basePayload.inline_message_id = inlineId.trim();
+      } else if (chatId && msgId) {
+        const cId = parseInt(chatId, 10);
+        const mId = parseInt(msgId, 10);
+        if (!isNaN(cId) && !isNaN(mId)) {
+          basePayload.chat_id = cId;
+          basePayload.message_id = mId;
+        } else {
+          return;
+        }
+      } else {
+        return;
+      }
 
       let currentScore = 0;
 
       try {
         const getUrl = `https://api.telegram.org/bot${botToken}/getGameHighScores`;
-        const getBody = {
-          user_id: targetIdNum,
-          ...(inlineId ? { inline_message_id: inlineId } : { chat_id: parseInt(chatId, 10), message_id: parseInt(msgId, 10) })
-        };
         const res = await fetch(getUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(getBody)
+          body: JSON.stringify({ user_id: targetIdNum, ...basePayload })
         });
         const data = await res.json();
-        if (data.ok && data.result) {
-          const userScoreObj = data.result.find(s => s.user.id === targetIdNum);
-          if (userScoreObj) currentScore = userScoreObj.score;
+        if (data.ok && Array.isArray(data.result)) {
+          const userScoreObj = data.result.find(s => s.user && s.user.id === targetIdNum);
+          if (userScoreObj && typeof userScoreObj.score === "number") currentScore = userScoreObj.score;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn("getGameHighScores error:", e);
+      }
 
       const newScore = currentScore + 1;
 
@@ -593,14 +615,24 @@
           user_id: targetIdNum,
           score: newScore,
           force: true,
-          edit_message: true,
-          ...(inlineId ? { inline_message_id: inlineId } : { chat_id: parseInt(chatId, 10), message_id: parseInt(msgId, 10) })
+          disable_edit_message: false,
+          ...basePayload
         };
-        await fetch(setUrl, {
+        const res = await fetch(setUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(setBody)
         });
+        const data = await res.json();
+        console.log("Paddle setGameScore result:", data);
+      } catch (e) {
+        console.warn("setGameScore error:", e);
+      }
+
+      try {
+        if (window.TelegramGameProxy && typeof window.TelegramGameProxy.setScore === "function") {
+          window.TelegramGameProxy.setScore(newScore);
+        }
       } catch (e) {}
     }
 
