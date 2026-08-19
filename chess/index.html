@@ -227,6 +227,85 @@
       color: #f87171;
     }
 
+    #action-dialog {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 15, 25, 0.88);
+      backdrop-filter: blur(8px);
+      z-index: 60;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .action-dialog-card {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 320px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: dialogPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes dialogPop {
+      0% { transform: scale(0.9); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .action-dialog-card h3 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .action-dialog-card p {
+      font-size: 14px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+    .dialog-actions-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .dialog-btn {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .dialog-btn:active {
+      transform: scale(0.96);
+    }
+    .dialog-btn.cancel {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+    }
+    .dialog-btn.confirm-danger {
+      background: #ef4444;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    }
+    .dialog-btn.confirm-primary {
+      background: #38bdf8;
+      color: #0b0f19;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+    .dialog-btn.confirm-success {
+      background: #22c55e;
+      color: #0b0f19;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    }
+
     #overlay {
       position: fixed;
       inset: 0;
@@ -406,6 +485,15 @@
     <div class="btn-actions-row">
       <button class="game-action-btn" onclick="offerDraw()">🤝 Offer Draw</button>
       <button class="game-action-btn danger" onclick="resignGame()">🏳️ Resign</button>
+    </div>
+  <div id="action-dialog">
+    <div class="action-dialog-card">
+      <h3 id="dialog-title">Confirm</h3>
+      <p id="dialog-desc">Are you sure?</p>
+      <div class="dialog-actions-row">
+        <button id="dialog-btn-cancel" class="dialog-btn cancel" onclick="handleDialogCancel()">Cancel</button>
+        <button id="dialog-btn-confirm" class="dialog-btn confirm-primary" onclick="handleDialogConfirm()">Confirm</button>
+      </div>
     </div>
   </div>
 
@@ -907,25 +995,44 @@
           appendMessage(data.text, "partner");
           if (!isChatOpen) {
             document.getElementById("chat-unread-dot").style.display = "block";
-            showFloatingToast(data.text);
+            showFloatingToast(`Partner: ${data.text}`);
           }
           return;
         }
 
         if (data.type === "OFFER_DRAW") {
-          if (confirm("Your partner has offered a draw. Do you accept?")) {
-            if (conn && conn.open) conn.send({ type: "ACCEPT_DRAW" });
-            handleGameOver("Draw", "Draw agreed by both players!");
-          }
+          showActionDialog({
+            title: "🤝 Draw Offer Received",
+            desc: "Your partner has offered to end the match in a draw. Do you accept?",
+            confirmText: "Accept Draw",
+            confirmType: "success",
+            cancelText: "Decline",
+            onConfirm: () => {
+              if (conn && conn.open) conn.send({ type: "ACCEPT_DRAW" });
+              handleGameOver("Draw", "Draw agreed by both players!");
+            },
+            onCancel: () => {
+              if (conn && conn.open) conn.send({ type: "DECLINE_DRAW" });
+              showFloatingToast("Declined draw offer.");
+            }
+          });
           return;
         }
 
         if (data.type === "ACCEPT_DRAW") {
+          closeActionDialog();
           handleGameOver("Draw", "Draw agreed by both players!");
           return;
         }
 
+        if (data.type === "DECLINE_DRAW") {
+          closeActionDialog();
+          showFloatingToast("❌ Partner declined the draw offer.");
+          return;
+        }
+
         if (data.type === "RESIGN") {
+          closeActionDialog();
           const winner = data.color === "w" ? "Black" : "White";
           handleGameOver(winner, `${data.color === "w" ? "White" : "Black"} resigned!`);
           return;
@@ -1120,27 +1227,99 @@
       document.getElementById("btn-replay").style.display = (role === "host") ? "inline-block" : "none";
     }
 
+    let currentDialogConfirm = null;
+    let currentDialogCancel = null;
+
+    function showActionDialog({ title, desc, confirmText = "Confirm", confirmType = "primary", onConfirm, onCancel, cancelText = "Cancel" }) {
+      const dialog = document.getElementById("action-dialog");
+      document.getElementById("dialog-title").innerText = title;
+      document.getElementById("dialog-desc").innerText = desc;
+
+      const confirmBtn = document.getElementById("dialog-btn-confirm");
+      confirmBtn.innerText = confirmText;
+      confirmBtn.className = `dialog-btn confirm-${confirmType}`;
+
+      const cancelBtn = document.getElementById("dialog-btn-cancel");
+      cancelBtn.innerText = cancelText;
+
+      currentDialogConfirm = onConfirm || null;
+      currentDialogCancel = onCancel || null;
+
+      dialog.style.display = "flex";
+    }
+
+    function closeActionDialog() {
+      const dialog = document.getElementById("action-dialog");
+      if (dialog) dialog.style.display = "none";
+      currentDialogConfirm = null;
+      currentDialogCancel = null;
+    }
+
+    function handleDialogConfirm() {
+      const callback = currentDialogConfirm;
+      closeActionDialog();
+      if (typeof callback === "function") callback();
+    }
+
+    function handleDialogCancel() {
+      const callback = currentDialogCancel;
+      closeActionDialog();
+      if (typeof callback === "function") callback();
+    }
+
     function restartMatch() {
+      closeActionDialog();
       document.getElementById("overlay").style.display = "none";
       if (role === "host") startNewMatch();
     }
 
     function offerDraw() {
-      if (!conn || !conn.open) return;
-      if (confirm("Send a draw offer to your partner?")) {
-        conn.send({ type: "OFFER_DRAW" });
-        alert("Draw offer sent to partner!");
+      if (!conn || !conn.open) {
+        showFloatingToast("⚠️ Match is not connected yet!");
+        return;
       }
+      showActionDialog({
+        title: "🤝 Offer Draw",
+        desc: "Send a draw offer to your partner?",
+        confirmText: "Send Offer",
+        confirmType: "primary",
+        onConfirm: () => {
+          if (conn && conn.open) {
+            conn.send({ type: "OFFER_DRAW" });
+            showFloatingToast("🤝 Draw offer sent to partner!");
+          }
+        }
+      });
     }
 
     function resignGame() {
-      if (confirm("Are you sure you want to resign this match?")) {
-        if (conn && conn.open) {
-          conn.send({ type: "RESIGN", color: myColor });
-        }
-        const winner = myColor === "w" ? "Black" : "White";
-        handleGameOver(winner, `${myColor === "w" ? "White" : "Black"} resigned!`);
+      if (!conn || !conn.open) {
+        showActionDialog({
+          title: "🏳️ Resign Game",
+          desc: "Are you sure you want to resign and end this match?",
+          confirmText: "Yes, Resign",
+          confirmType: "danger",
+          onConfirm: () => {
+            const winner = myColor === "w" ? "Black" : "White";
+            handleGameOver(winner, `${myColor === "w" ? "White" : "Black"} resigned!`);
+          }
+        });
+        return;
       }
+
+      showActionDialog({
+        title: "🏳️ Resign Match",
+        desc: "Are you sure you want to resign and concede the victory to your partner?",
+        confirmText: "Yes, Resign",
+        confirmType: "danger",
+        onConfirm: () => {
+          if (conn && conn.open) {
+            conn.send({ type: "RESIGN", color: myColor });
+          }
+          const winner = myColor === "w" ? "Black" : "White";
+          handleGameOver(winner, `${myColor === "w" ? "White" : "Black"} resigned!`);
+        }
+      });
     }
 
     function renderBoard() {
@@ -1323,7 +1502,7 @@
 
     function showFloatingToast(text) {
       const toast = document.getElementById("chat-toast");
-      toast.innerText = `Partner: ${text}`;
+      toast.innerText = text;
       toast.style.display = "block";
       toast.style.animation = "none";
       toast.offsetHeight;
