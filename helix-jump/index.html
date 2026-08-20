@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Helix Jump</title>
+  <title>Helix Jump - Stack Smash</title>
   <script src="https://telegram.org/js/games.js"></script>
   <style>
     :root {
-      --bg-gradient: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #090d16 100%);
+      --bg-gradient: radial-gradient(circle at 50% 30%, #d8b4e2 0%, #a5b4fc 100%);
       --accent-color: #38bdf8;
-      --card-bg: rgba(15, 23, 42, 0.75);
-      --card-border: rgba(255, 255, 255, 0.15);
+      --card-bg: rgba(15, 23, 42, 0.78);
+      --card-border: rgba(255, 255, 255, 0.2);
     }
 
     * {
@@ -26,7 +26,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #090d16;
+      background: #0f172a;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       color: #fff;
     }
@@ -40,6 +40,7 @@
       overflow: hidden;
       background: var(--bg-gradient);
       box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+      transition: background 0.5s ease;
     }
 
     canvas {
@@ -74,9 +75,9 @@
       background: var(--card-bg);
       backdrop-filter: blur(12px);
       border: 1px solid var(--card-border);
-      padding: 6px 16px;
-      border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      padding: 6px 18px;
+      border-radius: 18px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
     }
     .score-label {
       font-size: 11px;
@@ -86,11 +87,11 @@
       text-transform: uppercase;
     }
     .score-value {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 900;
       color: #ffffff;
       line-height: 1.1;
-      text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+      text-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
     }
 
     .hud-buttons {
@@ -99,8 +100,8 @@
       pointer-events: auto;
     }
     .icon-btn {
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: var(--card-bg);
       backdrop-filter: blur(12px);
@@ -127,13 +128,13 @@
       background: var(--card-bg);
       backdrop-filter: blur(12px);
       border: 1px solid var(--card-border);
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 20px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
     .level-badge {
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       background: linear-gradient(135deg, #38bdf8, #818cf8);
       display: flex;
@@ -153,7 +154,7 @@
     .progress-track {
       flex: 1;
       height: 8px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
       border-radius: 4px;
       overflow: hidden;
       position: relative;
@@ -163,35 +164,54 @@
       height: 100%;
       background: linear-gradient(90deg, #38bdf8, #a855f7, #f43f5e);
       border-radius: 4px;
-      transition: width 0.2s ease-out;
+      transition: width 0.15s ease-out;
       box-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
     }
 
-    /* Combo Banner */
-    #combo-banner {
+    /* Fireball Power Gauge */
+    #fury-container {
       position: absolute;
-      top: 135px;
+      top: 130px;
       left: 50%;
-      transform: translateX(-50%) scale(0.8);
-      background: linear-gradient(135deg, #f59e0b, #ef4444);
-      color: #fff;
-      font-size: 15px;
-      font-weight: 900;
-      padding: 6px 18px;
-      border-radius: 20px;
-      box-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
-      letter-spacing: 0.5px;
-      opacity: 0;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
       pointer-events: none;
-      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease;
-      z-index: 15;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.2s ease;
     }
-    #combo-banner.active {
-      transform: translateX(-50%) scale(1);
+    #fury-container.active {
       opacity: 1;
     }
+    .fury-label {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #f59e0b;
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.8);
+      text-transform: uppercase;
+    }
+    .fury-track {
+      width: 140px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .fury-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b, #ef4444);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+      border-radius: 4px;
+      transition: width 0.08s linear;
+    }
 
-    /* UI Overlays (Start / Game Over / Level Clear) */
+    /* UI Overlays */
     .ui-overlay {
       position: absolute;
       inset: 0;
@@ -258,8 +278,8 @@
       gap: 10px;
     }
     .stat-box {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 14px;
       padding: 10px;
       display: flex;
@@ -304,7 +324,6 @@
       box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
     }
 
-    /* Floating Quick Instructions */
     .controls-hint {
       position: absolute;
       bottom: 24px;
@@ -313,7 +332,7 @@
       background: var(--card-bg);
       backdrop-filter: blur(10px);
       border: 1px solid var(--card-border);
-      padding: 8px 18px;
+      padding: 8px 20px;
       border-radius: 20px;
       font-size: 13px;
       font-weight: 700;
@@ -357,21 +376,26 @@
       </div>
     </div>
 
-    <!-- Combo Streak Banner -->
-    <div id="combo-banner">🔥 3X SUPER SMASH!</div>
+    <!-- Fireball Power Gauge -->
+    <div id="fury-container">
+      <div class="fury-label">🔥 SUPER SMASH FURY</div>
+      <div class="fury-track">
+        <div class="fury-fill" id="fury-fill"></div>
+      </div>
+    </div>
 
-    <!-- Controls Floating Hint -->
+    <!-- Floating Hint -->
     <div class="controls-hint" id="controls-hint">
-      <span>👈 Swipe Left / Right to Rotate 👉</span>
+      <span>👇 Press & Hold to Smash Through Blocks! 👇</span>
     </div>
 
     <!-- Start Overlay -->
     <div class="ui-overlay active" id="start-overlay">
       <div class="glass-card">
-        <div class="title-pill">3D Helix Arcade</div>
+        <div class="title-pill">3D Helix Stack Smash</div>
         <h1 class="game-title">Helix Jump</h1>
         <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
-          Rotate the helix tower to drop the bouncing ball through open slits! Avoid red hazard sectors or chain 3+ drops to smash through anything!
+          The helix rotates automatically! <b>Hold to smash down</b> through safe colored blocks. Avoid hard black blocks or charge your Fireball meter to smash through anything!
         </p>
         <div class="score-stats">
           <div class="stat-box">
@@ -408,7 +432,7 @@
           </div>
         </div>
         <div id="gameover-msg" style="font-size: 13px; font-weight: 700; color: #94a3b8;">
-          Landed on a red hazard zone!
+          Hit a hard danger block!
         </div>
         <button class="btn-action" id="gameover-retry-btn" onclick="retryGame()">
           <span>TRY AGAIN</span>
@@ -423,8 +447,8 @@
         <div class="title-pill" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.15);">
           ⭐ LEVEL COMPLETED! ⭐
         </div>
-        <h2 class="game-title" style="font-size: 28px;">Magnificent!</h2>
-        <p style="font-size: 13px; color: #cbd5e1;">You conquered the helix tower!</p>
+        <h2 class="game-title" style="font-size: 28px;">Awesome!</h2>
+        <p style="font-size: 13px; color: #cbd5e1;">You smashed all the way to the bottom!</p>
         <div class="score-stats">
           <div class="stat-box">
             <span class="stat-label">Level</span>
@@ -496,8 +520,8 @@
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "sine";
-          osc.frequency.setValueAtTime(280, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.08);
+          osc.frequency.setValueAtTime(260, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.08);
           gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
           osc.connect(gain);
@@ -506,29 +530,12 @@
           osc.stop(this.ctx.currentTime + 0.08);
         } catch (e) {}
       },
-      playPass(combo = 1) {
+      playSmash(streak = 1) {
         if (isMuted) return;
         try {
           this.init();
-          const baseFreq = 440 * Math.pow(2, (Math.min(combo, 8) - 1) / 5);
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = "triangle";
-          osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, this.ctx.currentTime + 0.12);
-          gain.gain.setValueAtTime(0.28, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start();
-          osc.stop(this.ctx.currentTime + 0.12);
-        } catch (e) {}
-      },
-      playSmash() {
-        if (isMuted) return;
-        try {
-          this.init();
-          const bufferSize = this.ctx.sampleRate * 0.2;
+          // Crunchy white noise + punchy tone
+          const bufferSize = this.ctx.sampleRate * 0.12;
           const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
           const data = buffer.getChannelData(0);
           for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
@@ -536,13 +543,13 @@
           const noise = this.ctx.createBufferSource();
           noise.buffer = buffer;
           const filter = this.ctx.createBiquadFilter();
-          filter.type = "lowpass";
-          filter.frequency.setValueAtTime(800, this.ctx.currentTime);
-          filter.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.2);
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(600 + Math.min(streak * 80, 1200), this.ctx.currentTime);
+          filter.Q.value = 3;
 
           const gain = this.ctx.createGain();
           gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
 
           noise.connect(filter);
           filter.connect(gain);
@@ -557,9 +564,9 @@
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "sawtooth";
-          osc.frequency.setValueAtTime(200, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
-          gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+          osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.45, this.ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
@@ -588,53 +595,73 @@
     };
 
     // ==========================================
-    // Color Themes per Level
+    // Visual Themes (Matching User's Reference Image)
     // ==========================================
     const THEMES = [
       {
-        name: "Neon Emerald",
-        safeColor: "#10b981",
-        safeDark: "#047857",
-        hazardColor: "#ef4444",
-        hazardDark: "#b91c1c",
-        ballColor: "#38bdf8",
-        ballTrail: "#0284c7",
-        poleGrad: ["#1e293b", "#0f172a", "#334155"]
+        // Theme 1: Sky Blue with Dark Navy Splatter & Yellow Ball
+        name: "Sky Blue Studio",
+        background: "radial-gradient(circle at 50% 30%, #e0e7ff 0%, #c7d2fe 100%)",
+        safeColor: "#38bdf8",
+        safeDark: "#0284c7",
+        safeBevel: "#7dd3fc",
+        hardColor: "#1e293b",
+        hardDark: "#0f172a",
+        hardBevel: "#475569",
+        ballColor: "#facc15",
+        ballTrail: "#ca8a04",
+        splatterColor: "#1e3a8a",
+        pillarGradient: ["#f8fafc", "#e2e8f0", "#94a3b8"]
       },
       {
-        name: "Cyber Violet",
-        safeColor: "#8b5cf6",
-        safeDark: "#6d28d9",
-        hazardColor: "#f59e0b",
-        hazardDark: "#d97706",
-        ballColor: "#f43f5e",
-        ballTrail: "#e11d48",
-        poleGrad: ["#1e1b4b", "#0f172a", "#312e81"]
-      },
-      {
-        name: "Sunset Coral",
-        safeColor: "#f43f5e",
-        safeDark: "#be123c",
-        hazardColor: "#06b6d4",
-        hazardDark: "#0891b2",
+        // Theme 2: Crimson & Obsidian
+        name: "Obsidian & Crimson",
+        background: "radial-gradient(circle at 50% 30%, #f1f5f9 0%, #cbd5e1 100%)",
+        safeColor: "#ef4444",
+        safeDark: "#b91c1c",
+        safeBevel: "#f87171",
+        hardColor: "#18181b",
+        hardDark: "#09090b",
+        hardBevel: "#3f3f46",
         ballColor: "#fbbf24",
         ballTrail: "#d97706",
-        poleGrad: ["#2d1b4e", "#0f172a", "#4c1d95"]
+        splatterColor: "#991b1b",
+        pillarGradient: ["#ffffff", "#e2e8f0", "#94a3b8"]
       },
       {
-        name: "Electric Aqua",
-        safeColor: "#06b6d4",
-        safeDark: "#0e7490",
-        hazardColor: "#ec4899",
-        hazardDark: "#be185d",
-        ballColor: "#a3e635",
-        ballTrail: "#65a30d",
-        poleGrad: ["#1e293b", "#0f172a", "#334155"]
+        // Theme 3: Vibrant Lime & Mint with Purple Ball
+        name: "Mint & Lime",
+        background: "radial-gradient(circle at 50% 30%, #dcfce7 0%, #a7f3d0 100%)",
+        safeColor: "#84cc16",
+        safeDark: "#4d7c0f",
+        safeBevel: "#a3e635",
+        hardColor: "#0f172a",
+        hardDark: "#020617",
+        hardBevel: "#334155",
+        ballColor: "#9333ea",
+        ballTrail: "#6b21a8",
+        splatterColor: "#7e22ce",
+        pillarGradient: ["#f0fdf4", "#dcfce7", "#86efac"]
+      },
+      {
+        // Theme 4: Sunset Coral & Magenta
+        name: "Sunset Coral",
+        background: "radial-gradient(circle at 50% 30%, #fce7f3 0%, #fbcfe8 100%)",
+        safeColor: "#f43f5e",
+        safeDark: "#be123c",
+        safeBevel: "#fb7185",
+        hardColor: "#312e81",
+        hardDark: "#1e1b4b",
+        hardBevel: "#4338ca",
+        ballColor: "#06b6d4",
+        ballTrail: "#0891b2",
+        splatterColor: "#9f1239",
+        pillarGradient: ["#fff1f2", "#ffe4e6", "#fecdd3"]
       }
     ];
 
     // ==========================================
-    // Game State Variables
+    // Game Physics & State
     // ==========================================
     let level = 1;
     let score = 0;
@@ -643,42 +670,48 @@
     let gameOverTime = 0;
     const RESTART_COOLDOWN_MS = 1500;
 
-    const SECTORS_PER_DISK = 12;
+    const SECTORS_PER_DISK = 8;
     const SECTOR_ANGLE = (Math.PI * 2) / SECTORS_PER_DISK;
-    const FLOOR_DISTANCE = 110;
-    const PILLAR_RADIUS = 36;
-    const DISK_OUTER_RADIUS = 135;
-    const DISK_THICKNESS = 18;
+    const FLOOR_DISTANCE = 46;
+    const PILLAR_RADIUS = 32;
+    const DISK_OUTER_RADIUS = 125;
+    const DISK_THICKNESS = 20;
 
-    let targetTowerRotation = 0;
-    let currentTowerRotation = 0;
+    let towerRotation = 0;
+    let towerRotationSpeed = 0.024; // Auto-rotates by itself!
 
     let floors = [];
-    let particles = [];
+    let shards = [];
     let splatters = [];
     let popups = [];
 
-    const GRAVITY = 0.42;
-    const BOUNCE_IMPULSE = -8.6;
-    const BALL_RADIUS = 14;
+    // Ball Physics
+    const BALL_RADIUS = 13;
+    let isHoldingSmash = false;
+    let smashStreak = 0;
+    let furyMeter = 0; // 0 to 100
+    let isFireballMode = false;
+    let fireballTimer = 0;
 
     const ball = {
-      y: -FLOOR_DISTANCE * 0.4,
-      vy: 0,
-      radius: BALL_RADIUS,
+      worldY: 0,
+      targetFloorIndex: 0,
+      bounceTime: 0,
       scaleX: 1,
       scaleY: 1,
-      combo: 0,
-      isFireball: false,
-      lastPassedFloorIndex: -1,
+      isDrilling: false,
+      drillSpeed: 10,
       reset() {
-        this.y = -FLOOR_DISTANCE * 0.4;
-        this.vy = 0;
+        this.targetFloorIndex = 0;
+        this.worldY = 0;
+        this.bounceTime = 0;
         this.scaleX = 1;
         this.scaleY = 1;
-        this.combo = 0;
-        this.isFireball = false;
-        this.lastPassedFloorIndex = -1;
+        this.isDrilling = false;
+        smashStreak = 0;
+        furyMeter = 0;
+        isFireballMode = false;
+        fireballTimer = 0;
       }
     };
 
@@ -686,58 +719,47 @@
     let screenShake = 0;
 
     // ==========================================
-    // Level & Floor Generation
+    // Level Generation
     // ==========================================
     function generateLevel(lvl) {
       const themeIndex = (lvl - 1) % THEMES.length;
       const theme = THEMES[themeIndex];
-      const floorCount = 15 + Math.min(lvl * 2, 25);
+      document.getElementById("game-container").style.background = theme.background;
 
+      const floorCount = 20 + Math.min(lvl * 3, 40);
       floors = [];
+      shards = [];
       splatters = [];
 
-      for (let i = 0; i < floorCount; i++) {
-        const isFirst = (i === 0);
-        const isFinish = (i === floorCount - 1);
+      towerRotationSpeed = 0.022 + Math.min(lvl * 0.002, 0.015);
 
+      for (let i = 0; i < floorCount; i++) {
+        const isFinish = (i === floorCount - 1);
         const sectors = [];
+
         if (isFinish) {
+          // Bottom golden base disk
           for (let s = 0; s < SECTORS_PER_DISK; s++) {
-            sectors.push({ type: "finish" });
+            sectors.push({ type: "finish", intact: true });
           }
-        } else if (isFirst) {
-          const gapStart = 3;
+        } else if (i < 3) {
+          // First few floors are 100% safe to get player started
           for (let s = 0; s < SECTORS_PER_DISK; s++) {
-            if (s === gapStart || s === gapStart + 1) {
-              sectors.push({ type: "gap" });
-            } else {
-              sectors.push({ type: "safe" });
-            }
+            sectors.push({ type: "safe", intact: true });
           }
         } else {
-          const gapSize = Math.max(1, 3 - Math.floor(lvl / 5));
-          const gapStart = Math.floor(Math.random() * SECTORS_PER_DISK);
-          const hazardCount = Math.min(Math.floor(lvl / 2) + 1, 4);
-
-          const hazardIndices = new Set();
-          while (hazardIndices.size < hazardCount) {
-            const hIdx = Math.floor(Math.random() * SECTORS_PER_DISK);
-            const inGap = (hIdx >= gapStart && hIdx < gapStart + gapSize) ||
-                          (gapStart + gapSize > SECTORS_PER_DISK && hIdx < (gapStart + gapSize) % SECTORS_PER_DISK);
-            if (!inGap) {
-              hazardIndices.add(hIdx);
-            }
+          // Mixed safe & hard sectors
+          const hardCount = Math.min(1 + Math.floor(lvl / 3), 4);
+          const hardIndices = new Set();
+          while (hardIndices.size < hardCount) {
+            hardIndices.add(Math.floor(Math.random() * SECTORS_PER_DISK));
           }
 
           for (let s = 0; s < SECTORS_PER_DISK; s++) {
-            const isGap = (s >= gapStart && s < gapStart + gapSize) ||
-                          (gapStart + gapSize > SECTORS_PER_DISK && s < (gapStart + gapSize) % SECTORS_PER_DISK);
-            if (isGap) {
-              sectors.push({ type: "gap" });
-            } else if (hazardIndices.has(s)) {
-              sectors.push({ type: "hazard" });
+            if (hardIndices.has(s)) {
+              sectors.push({ type: "hard", intact: true });
             } else {
-              sectors.push({ type: "safe" });
+              sectors.push({ type: "safe", intact: true });
             }
           }
         }
@@ -760,8 +782,8 @@
 
     function updateProgressBar() {
       if (floors.length === 0) return;
-      const totalDistance = (floors.length - 1) * FLOOR_DISTANCE;
-      const currentProgress = Math.max(0, Math.min(1, ball.y / totalDistance));
+      const totalDistance = (floors.length - 1);
+      const currentProgress = Math.max(0, Math.min(1, ball.targetFloorIndex / totalDistance));
       document.getElementById("hud-progress-fill").style.width = `${(currentProgress * 100).toFixed(1)}%`;
     }
 
@@ -817,18 +839,20 @@
       gameState = "GAMEOVER";
       gameOverTime = performance.now();
       AudioEngine.playGameOver();
-      screenShake = 14;
+      screenShake = 16;
 
       const theme = THEMES[(level - 1) % THEMES.length];
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < 28; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const spd = Math.random() * 6 + 2;
-        particles.push({
+        const spd = Math.random() * 7 + 2;
+        shards.push({
           x: width / 2,
           y: ballScreenY(),
           vx: Math.cos(angle) * spd,
-          vy: Math.sin(angle) * spd - 3,
-          size: Math.random() * 6 + 3,
+          vy: Math.sin(angle) * spd - 4,
+          rot: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 8 + 4,
           color: theme.ballColor,
           alpha: 1,
           decay: 0.02
@@ -855,17 +879,19 @@
     function triggerLevelClear() {
       gameState = "LEVELCLEAR";
       AudioEngine.playVictory();
-      screenShake = 8;
+      screenShake = 10;
 
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < 90; i++) {
         const angle = Math.random() * Math.PI * 2;
         const spd = Math.random() * 9 + 3;
         const colors = ["#f59e0b", "#38bdf8", "#ec4899", "#10b981", "#fbbf24"];
-        particles.push({
+        shards.push({
           x: width / 2,
           y: ballScreenY(),
           vx: Math.cos(angle) * spd,
           vy: Math.sin(angle) * spd - 4,
+          rot: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.2,
           size: Math.random() * 7 + 4,
           color: colors[Math.floor(Math.random() * colors.length)],
           alpha: 1,
@@ -897,7 +923,7 @@
       document.getElementById("hud-score").innerText = score;
       ball.reset();
       generateLevel(level);
-      cameraY = ball.y - 120;
+      cameraY = ball.worldY - 140;
       gameState = "PLAYING";
     }
 
@@ -908,7 +934,7 @@
       document.getElementById("hud-score").innerText = score;
       ball.reset();
       generateLevel(level);
-      cameraY = ball.y - 120;
+      cameraY = ball.worldY - 140;
       gameState = "PLAYING";
     }
 
@@ -917,53 +943,58 @@
       level++;
       ball.reset();
       generateLevel(level);
-      cameraY = ball.y - 120;
+      cameraY = ball.worldY - 140;
       gameState = "PLAYING";
     }
 
     // ==========================================
-    // Shatter Floor / Splatter Effects
+    // Shatter Sector & Physics Shards
     // ==========================================
-    function shatterFloor(floor) {
+    function shatterFloor(floor, sectorIndex) {
       floor.isShattered = true;
-      AudioEngine.playSmash();
-      screenShake = 10;
+      AudioEngine.playSmash(smashStreak);
+      screenShake = 6 + Math.min(smashStreak * 1.5, 12);
 
       const theme = THEMES[(level - 1) % THEMES.length];
       const floorCenterY = floor.worldY - cameraY + height / 2;
 
-      for (let i = 0; i < 30; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const spd = Math.random() * 8 + 3;
-        particles.push({
-          x: width / 2 + Math.cos(angle) * (PILLAR_RADIUS + Math.random() * 50),
+      // Explode the floor sectors into 3D flying wedge shards
+      for (let s = 0; s < SECTORS_PER_DISK; s++) {
+        const sec = floor.sectors[s];
+        const angle = s * SECTOR_ANGLE + towerRotation + SECTOR_ANGLE / 2;
+        const spd = Math.random() * 8 + 4;
+        const color = sec.type === "hard" ? theme.hardColor : theme.safeColor;
+
+        shards.push({
+          x: width / 2 + Math.cos(angle) * (PILLAR_RADIUS + 35),
           y: floorCenterY,
           vx: Math.cos(angle) * spd,
           vy: Math.sin(angle) * spd - 3,
-          size: Math.random() * 8 + 4,
-          color: theme.safeColor,
+          rot: angle,
+          vRot: (Math.random() - 0.5) * 0.4,
+          size: Math.random() * 12 + 8,
+          color: color,
           alpha: 1,
-          decay: 0.025
+          decay: 0.02
         });
       }
     }
 
-    function addSplatter(floorIndex, sectorAngle) {
+    function addSplatter(floorIndex, angleOnDisk) {
       const theme = THEMES[(level - 1) % THEMES.length];
       splatters.push({
         floorIndex,
-        localAngle: sectorAngle,
+        localAngle: angleOnDisk,
         radius: BALL_RADIUS * 1.4,
-        color: theme.ballColor,
-        alpha: 0.8
+        color: theme.splatterColor,
+        alpha: 0.85
       });
     }
 
-    function addPopup(text, color = "#fff", isSuper = false) {
+    function addPopup(text, color = "#fff") {
       popups.push({
         text,
         color,
-        isSuper,
         x: width / 2,
         y: ballScreenY() - 25,
         vy: -2,
@@ -972,196 +1003,198 @@
     }
 
     function ballScreenY() {
-      return (ball.y - cameraY) + height / 2;
+      return (ball.worldY - cameraY) + height / 2;
     }
 
     // ==========================================
-    // User Input Handling (Drag & Keys)
+    // Touch & Mouse Input (Hold to Smash)
     // ==========================================
-    let isPointerDown = false;
-    let lastPointerX = 0;
-
-    function onPointerDown(clientX) {
+    function startHold() {
       AudioEngine.init();
-      isPointerDown = true;
-      lastPointerX = clientX;
+      if (gameState === "PLAYING") {
+        isHoldingSmash = true;
+      }
     }
 
-    function onPointerMove(clientX) {
-      if (!isPointerDown || gameState !== "PLAYING") return;
-      const deltaX = clientX - lastPointerX;
-      lastPointerX = clientX;
-      targetTowerRotation += deltaX * 0.012;
+    function endHold() {
+      isHoldingSmash = false;
     }
 
-    function onPointerUp() {
-      isPointerDown = false;
-    }
+    canvas.addEventListener("pointerdown", startHold);
+    window.addEventListener("pointerup", endHold);
+    window.addEventListener("pointercancel", endHold);
 
-    canvas.addEventListener("pointerdown", (e) => onPointerDown(e.clientX));
-    window.addEventListener("pointermove", (e) => onPointerMove(e.clientX));
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerUp);
-
-    const keys = {};
     window.addEventListener("keydown", (e) => {
-      keys[e.code] = true;
-      if (gameState === "GAMEOVER" && (e.code === "Space" || e.code === "Enter")) {
-        retryGame();
+      if (e.code === "Space" || e.code === "ArrowDown" || e.key === " ") {
+        if (gameState === "GAMEOVER") {
+          retryGame();
+        } else {
+          startHold();
+        }
       }
     });
     window.addEventListener("keyup", (e) => {
-      keys[e.code] = false;
+      if (e.code === "Space" || e.code === "ArrowDown" || e.key === " ") {
+        endHold();
+      }
     });
 
     // ==========================================
-    // Update Engine & Collision Math
+    // Update Engine
     // ==========================================
     function update() {
       if (gameState !== "PLAYING") {
-        updateParticles();
+        updateShards();
         return;
       }
 
-      if (keys["ArrowLeft"] || keys["KeyA"]) targetTowerRotation += 0.055;
-      if (keys["ArrowRight"] || keys["KeyD"]) targetTowerRotation -= 0.055;
+      // 1. Auto-rotate the helix tower smoothly
+      towerRotation += towerRotationSpeed;
 
-      currentTowerRotation += (targetTowerRotation - currentTowerRotation) * 0.22;
-
-      ball.vy += GRAVITY;
-      ball.y += ball.vy;
-
-      ball.scaleX += (1 - ball.scaleX) * 0.15;
-      ball.scaleY += (1 - ball.scaleY) * 0.15;
-
-      if (ball.isFireball) {
-        for (let p = 0; p < 2; p++) {
-          particles.push({
-            x: width / 2 + (Math.random() * 12 - 6),
-            y: ballScreenY() + (Math.random() * 8 - 4),
-            vx: (Math.random() - 0.5) * 2,
-            vy: -Math.random() * 3 - 2,
-            size: Math.random() * 7 + 4,
-            color: Math.random() < 0.5 ? "#f59e0b" : "#ef4444",
-            alpha: 0.9,
-            decay: 0.04
-          });
+      // 2. Fireball / Fury Meter Logic
+      if (isFireballMode) {
+        fireballTimer -= 0.016;
+        furyMeter = (fireballTimer / 4.0) * 100;
+        if (fireballTimer <= 0) {
+          isFireballMode = false;
+          furyMeter = 0;
+        }
+      } else {
+        if (isHoldingSmash) {
+          furyMeter = Math.min(100, furyMeter + 0.8);
+          if (furyMeter >= 100) {
+            isFireballMode = true;
+            fireballTimer = 4.0; // 4 seconds of invincible fireball smash!
+          }
+        } else {
+          furyMeter = Math.max(0, furyMeter - 1.2);
         }
       }
 
-      for (let i = 0; i < floors.length; i++) {
-        const floor = floors[i];
-        if (floor.isShattered) continue;
+      const furyContainer = document.getElementById("fury-container");
+      if (furyMeter > 10 || isFireballMode) {
+        furyContainer.classList.add("active");
+        document.getElementById("fury-fill").style.width = `${furyMeter.toFixed(1)}%`;
+      } else {
+        furyContainer.classList.remove("active");
+      }
 
-        const floorTopY = floor.worldY;
-        const isNearFloor = (ball.y + ball.radius >= floorTopY && ball.y - ball.vy + ball.radius <= floorTopY + 14);
+      // 3. Ball Action: Bouncing vs Smashing
+      const currentFloor = floors[ball.targetFloorIndex];
 
-        if (isNearFloor) {
-          let angleOnDisk = ((-currentTowerRotation) % (Math.PI * 2) + (Math.PI * 2)) % (Math.PI * 2);
+      if (!currentFloor) {
+        triggerLevelClear();
+        return;
+      }
+
+      if (currentFloor.isFinish && ball.worldY >= currentFloor.worldY - BALL_RADIUS) {
+        ball.worldY = currentFloor.worldY - BALL_RADIUS;
+        triggerLevelClear();
+        return;
+      }
+
+      if (isHoldingSmash) {
+        // SMASHING / DRILLING DOWNWARD!
+        ball.isDrilling = true;
+        ball.worldY += ball.drillSpeed;
+
+        // Check if ball reaches or passes current target floor
+        if (ball.worldY >= currentFloor.worldY - BALL_RADIUS) {
+          // Calculate sector under ball (ball is at front center, angle = 0)
+          let angleOnDisk = ((-towerRotation) % (Math.PI * 2) + (Math.PI * 2)) % (Math.PI * 2);
           const sectorIndex = Math.floor(angleOnDisk / SECTOR_ANGLE) % SECTORS_PER_DISK;
-          const sector = floor.sectors[sectorIndex];
+          const sector = currentFloor.sectors[sectorIndex];
 
-          if (sector.type === "gap") {
-            if (ball.lastPassedFloorIndex !== i) {
-              ball.lastPassedFloorIndex = i;
-              ball.combo++;
-              AudioEngine.playPass(ball.combo);
-
-              const pts = ball.combo >= 3 ? ball.combo * 5 : ball.combo;
-              score += pts;
-              document.getElementById("hud-score").innerText = score;
-              addPopup(`+${pts}`, ball.combo >= 3 ? "#f59e0b" : "#38bdf8", ball.combo >= 3);
-
-              if (ball.combo >= 3 && !ball.isFireball) {
-                ball.isFireball = true;
-                const banner = document.getElementById("combo-banner");
-                banner.innerText = `🔥 ${ball.combo}X SUPER SMASH! 🔥`;
-                banner.classList.add("active");
-              }
-            }
-          } else if (sector.type === "finish") {
-            ball.y = floorTopY - ball.radius;
+          if (currentFloor.isFinish) {
+            ball.worldY = currentFloor.worldY - BALL_RADIUS;
             triggerLevelClear();
             return;
-          } else if (sector.type === "hazard") {
-            if (ball.isFireball) {
-              shatterFloor(floor);
+          }
+
+          if (sector.type === "hard") {
+            if (isFireballMode) {
+              // Super smash breaks through hard block!
+              shatterFloor(currentFloor, sectorIndex);
+              smashStreak++;
               score += 25;
               document.getElementById("hud-score").innerText = score;
-              addPopup("+25 SMASH!", "#f59e0b", true);
+              addPopup("+25 FIREBALL!", "#f59e0b");
+              ball.targetFloorIndex++;
             } else {
-              ball.y = floorTopY - ball.radius;
+              // Hit hard block in normal mode -> GAME OVER!
+              ball.worldY = currentFloor.worldY - BALL_RADIUS;
               triggerGameOver();
               return;
             }
-          } else if (sector.type === "safe") {
-            if (ball.isFireball) {
-              shatterFloor(floor);
-              score += 20;
-              document.getElementById("hud-score").innerText = score;
-              addPopup("+20 SMASH!", "#f59e0b", true);
-            } else {
-              ball.y = floorTopY - ball.radius;
-              ball.vy = BOUNCE_IMPULSE;
-              ball.scaleX = 1.35;
-              ball.scaleY = 0.65;
-              ball.combo = 0;
-              ball.isFireball = false;
-              document.getElementById("combo-banner").classList.remove("active");
-
-              AudioEngine.playBounce();
-              addSplatter(i, angleOnDisk);
-
-              const theme = THEMES[(level - 1) % THEMES.length];
-              for (let p = 0; p < 8; p++) {
-                const spd = Math.random() * 4 + 1;
-                const a = Math.random() * Math.PI * 2;
-                particles.push({
-                  x: width / 2 + Math.cos(a) * 8,
-                  y: ballScreenY() + ball.radius - 2,
-                  vx: Math.cos(a) * spd,
-                  vy: -Math.random() * 2 - 1,
-                  size: Math.random() * 4 + 2,
-                  color: theme.ballColor,
-                  alpha: 0.8,
-                  decay: 0.04
-                });
-              }
-            }
+          } else {
+            // Safe block -> SMASH THROUGH!
+            shatterFloor(currentFloor, sectorIndex);
+            smashStreak++;
+            const pts = smashStreak >= 3 ? smashStreak * 2 : 1;
+            score += pts;
+            document.getElementById("hud-score").innerText = score;
+            addPopup(`+${pts}`, smashStreak >= 3 ? "#f59e0b" : "#38bdf8");
+            ball.targetFloorIndex++;
           }
+        }
+      } else {
+        // BOUNCING ON TOP OF CURRENT FLOOR
+        ball.isDrilling = false;
+        smashStreak = 0;
+        ball.bounceTime += 0.16;
+
+        const bounceHeight = 36;
+        const bounceOffset = Math.abs(Math.sin(ball.bounceTime)) * bounceHeight;
+        ball.worldY = (currentFloor.worldY - BALL_RADIUS) - bounceOffset;
+
+        // On landing impact
+        if (bounceOffset < 2) {
+          ball.scaleX = 1.35;
+          ball.scaleY = 0.65;
+          AudioEngine.playBounce();
+
+          let angleOnDisk = ((-towerRotation) % (Math.PI * 2) + (Math.PI * 2)) % (Math.PI * 2);
+          addSplatter(ball.targetFloorIndex, angleOnDisk);
         }
       }
 
-      const targetCameraY = ball.y - 120;
-      cameraY += (targetCameraY - cameraY) * 0.15;
+      // Recover scale
+      ball.scaleX += (1 - ball.scaleX) * 0.2;
+      ball.scaleY += (1 - ball.scaleY) * 0.2;
 
-      if (screenShake > 0) screenShake *= 0.88;
+      // Camera follow
+      const targetCameraY = ball.worldY - 140;
+      cameraY += (targetCameraY - cameraY) * 0.2;
+
+      // Screen shake decay
+      if (screenShake > 0) screenShake *= 0.86;
       if (screenShake < 0.1) screenShake = 0;
 
       updateProgressBar();
-      updateParticles();
+      updateShards();
     }
 
-    function updateParticles() {
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const pt = particles[i];
-        pt.x += pt.vx;
-        pt.y += pt.vy;
-        pt.vy += 0.2;
-        pt.alpha -= pt.decay;
-        if (pt.alpha <= 0) particles.splice(i, 1);
+    function updateShards() {
+      for (let i = shards.length - 1; i >= 0; i--) {
+        const sh = shards[i];
+        sh.x += sh.vx;
+        sh.y += sh.vy;
+        sh.vy += 0.25; // gravity
+        sh.rot += sh.vRot;
+        sh.alpha -= sh.decay;
+        if (sh.alpha <= 0) shards.splice(i, 1);
       }
 
       for (let i = popups.length - 1; i >= 0; i--) {
         const pop = popups[i];
         pop.y += pop.vy;
-        pop.alpha -= 0.025;
+        pop.alpha -= 0.03;
         if (pop.alpha <= 0) popups.splice(i, 1);
       }
     }
 
     // ==========================================
-    // 3D Perspective Projection & Rendering
+    // 3D Rendering Engine
     // ==========================================
     function draw() {
       ctx.clearRect(0, 0, width, height);
@@ -1177,13 +1210,21 @@
       const centerY = height / 2;
       const theme = THEMES[(level - 1) % THEMES.length];
 
+      // 1. Draw Central Pillar
       drawPillar(centerX, centerY, theme);
+
+      // 2. Draw 3D Stacked Disk Platforms
       drawFloors(centerX, centerY, theme);
+
+      // 3. Draw Bouncing / Smashing Ball
       drawBall(centerX, centerY, theme);
-      drawParticlesAndPopups();
+
+      // 4. Draw Flying Shards & Popups
+      drawShardsAndPopups();
 
       ctx.restore();
 
+      // Cooldown timer update on Game Over
       if (gameState === "GAMEOVER") {
         const elapsed = performance.now() - gameOverTime;
         const retryBtn = document.getElementById("gameover-retry-btn");
@@ -1205,16 +1246,16 @@
 
     function drawPillar(centerX, centerY, theme) {
       const poleGrad = ctx.createLinearGradient(centerX - PILLAR_RADIUS, 0, centerX + PILLAR_RADIUS, 0);
-      poleGrad.addColorStop(0, "#0f172a");
-      poleGrad.addColorStop(0.3, "#334155");
-      poleGrad.addColorStop(0.7, "#475569");
-      poleGrad.addColorStop(1, "#0f172a");
+      poleGrad.addColorStop(0, theme.pillarGradient[0]);
+      poleGrad.addColorStop(0.3, theme.pillarGradient[1]);
+      poleGrad.addColorStop(1, theme.pillarGradient[2]);
 
       ctx.fillStyle = poleGrad;
       ctx.fillRect(centerX - PILLAR_RADIUS, 0, PILLAR_RADIUS * 2, height);
 
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-      ctx.lineWidth = 2;
+      // Specular highlight line on cylinder
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(centerX - PILLAR_RADIUS * 0.35, 0);
       ctx.lineTo(centerX - PILLAR_RADIUS * 0.35, height);
@@ -1222,21 +1263,22 @@
     }
 
     function drawFloors(centerX, centerY, theme) {
-      const visibleRange = 600;
+      const visibleRange = 650;
 
       for (let i = 0; i < floors.length; i++) {
         const floor = floors[i];
         if (floor.isShattered) continue;
 
         const relY = floor.worldY - cameraY;
-        if (relY < -200 || relY > visibleRange) continue;
+        if (relY < -150 || relY > visibleRange) continue;
 
         const screenY = centerY + relY;
-        const scaleY = 0.36;
+        const scaleY = 0.35; // 3D tilt perspective
 
+        // Draw sectors: back sectors first, front sectors last
         const sectorIndices = [];
         for (let s = 0; s < SECTORS_PER_DISK; s++) {
-          const midAngle = s * SECTOR_ANGLE + SECTOR_ANGLE / 2 + currentTowerRotation;
+          const midAngle = s * SECTOR_ANGLE + SECTOR_ANGLE / 2 + towerRotation;
           const zDepth = Math.cos(midAngle);
           sectorIndices.push({ s, zDepth });
         }
@@ -1246,19 +1288,20 @@
         for (const item of sectorIndices) {
           const s = item.s;
           const sector = floor.sectors[s];
-          if (sector.type === "gap") continue;
+          if (!sector.intact) continue;
 
-          const startAngle = s * SECTOR_ANGLE + currentTowerRotation;
-          const endAngle = (s + 1) * SECTOR_ANGLE + currentTowerRotation;
+          const startAngle = s * SECTOR_ANGLE + towerRotation;
+          const endAngle = (s + 1) * SECTOR_ANGLE + towerRotation;
 
-          drawSector(centerX, screenY, startAngle, endAngle, sector.type, floor.isFinish, theme, scaleY);
+          drawWedge(centerX, screenY, startAngle, endAngle, sector.type, floor.isFinish, theme, scaleY);
         }
 
+        // Draw paint splatters on this floor
         for (const splat of splatters) {
           if (splat.floorIndex === i) {
-            const splatAngle = splat.localAngle + currentTowerRotation;
-            const splatX = centerX + Math.sin(splatAngle) * (PILLAR_RADIUS + (DISK_OUTER_RADIUS - PILLAR_RADIUS) * 0.45);
-            const splatY = screenY + Math.cos(splatAngle) * (PILLAR_RADIUS + (DISK_OUTER_RADIUS - PILLAR_RADIUS) * 0.45) * scaleY;
+            const splatAngle = splat.localAngle + towerRotation;
+            const splatX = centerX + Math.sin(splatAngle) * (PILLAR_RADIUS + (DISK_OUTER_RADIUS - PILLAR_RADIUS) * 0.5);
+            const splatY = screenY + Math.cos(splatAngle) * (PILLAR_RADIUS + (DISK_OUTER_RADIUS - PILLAR_RADIUS) * 0.5) * scaleY;
 
             ctx.save();
             ctx.fillStyle = splat.color;
@@ -1272,20 +1315,24 @@
       }
     }
 
-    function drawSector(centerX, screenY, startAngle, endAngle, type, isFinish, theme, scaleY) {
-      let topFill, sideFill;
+    function drawWedge(centerX, screenY, startAngle, endAngle, type, isFinish, theme, scaleY) {
+      let topFill, sideFill, bevelFill;
 
       if (isFinish) {
         topFill = "#f59e0b";
         sideFill = "#b45309";
-      } else if (type === "hazard") {
-        topFill = theme.hazardColor;
-        sideFill = theme.hazardDark;
+        bevelFill = "#fbbf24";
+      } else if (type === "hard") {
+        topFill = theme.hardColor;
+        sideFill = theme.hardDark;
+        bevelFill = theme.hardBevel;
       } else {
         topFill = theme.safeColor;
         sideFill = theme.safeDark;
+        bevelFill = theme.safeBevel;
       }
 
+      // 1. Draw 3D Outer Thickness Side Wall
       ctx.fillStyle = sideFill;
       ctx.beginPath();
       for (let a = startAngle; a <= endAngle; a += 0.05) {
@@ -1302,17 +1349,20 @@
       ctx.closePath();
       ctx.fill();
 
+      // 2. Draw Top Sector Surface
       ctx.fillStyle = topFill;
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.25)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = bevelFill;
+      ctx.lineWidth = 1.2;
 
       ctx.beginPath();
+      // Inner arc
       for (let a = startAngle; a <= endAngle; a += 0.05) {
         const x = centerX + Math.cos(a) * PILLAR_RADIUS;
         const y = screenY + Math.sin(a) * PILLAR_RADIUS * scaleY;
         if (a === startAngle) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
+      // Outer arc reverse
       for (let a = endAngle; a >= startAngle; a -= 0.05) {
         const x = centerX + Math.cos(a) * DISK_OUTER_RADIUS;
         const y = screenY + Math.sin(a) * DISK_OUTER_RADIUS * scaleY;
@@ -1321,31 +1371,30 @@
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
     }
 
     function drawBall(centerX, centerY, theme) {
       if (gameState === "GAMEOVER") return;
 
-      const screenY = (ball.y - cameraY) + centerY;
+      const screenY = (ball.worldY - cameraY) + centerY;
       const ballX = centerX;
 
+      // 1. Projected Shadow on disk below
       ctx.save();
       ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
       ctx.beginPath();
-      ctx.ellipse(ballX, screenY + ball.radius * 2.2, ball.radius * 0.9, ball.radius * 0.3, 0, 0, Math.PI * 2);
+      ctx.ellipse(ballX, screenY + ball.radius * 2, ball.radius * 0.9, ball.radius * 0.28, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
+      // 2. Ball Body
       ctx.save();
       ctx.translate(ballX, screenY);
       ctx.scale(ball.scaleX, ball.scaleY);
 
-      if (ball.isFireball) {
-        const fireGrad = ctx.createRadialGradient(-3, -3, 2, 0, 0, ball.radius * 1.3);
+      if (isFireballMode) {
+        // Blazing Fireball
+        const fireGrad = ctx.createRadialGradient(-3, -3, 2, 0, 0, ball.radius * 1.4);
         fireGrad.addColorStop(0, "#fffbeb");
         fireGrad.addColorStop(0.3, "#fde047");
         fireGrad.addColorStop(0.6, "#f97316");
@@ -1353,15 +1402,16 @@
 
         ctx.fillStyle = fireGrad;
         ctx.shadowColor = "#f97316";
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = 20;
         ctx.beginPath();
-        ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
+        ctx.arc(0, 0, ball.radius * 1.15, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       } else {
+        // Normal 3D Sphere Ball
         const ballGrad = ctx.createRadialGradient(-ball.radius * 0.3, -ball.radius * 0.3, ball.radius * 0.1, 0, 0, ball.radius);
         ballGrad.addColorStop(0, "#ffffff");
-        ballGrad.addColorStop(0.4, theme.ballColor);
+        ballGrad.addColorStop(0.35, theme.ballColor);
         ballGrad.addColorStop(1, theme.ballTrail);
 
         ctx.fillStyle = ballGrad;
@@ -1376,21 +1426,23 @@
       ctx.restore();
     }
 
-    function drawParticlesAndPopups() {
-      for (const pt of particles) {
+    function drawShardsAndPopups() {
+      // 3D Flying Shards
+      for (const sh of shards) {
         ctx.save();
-        ctx.globalAlpha = Math.max(0, pt.alpha);
-        ctx.fillStyle = pt.color;
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = Math.max(0, sh.alpha);
+        ctx.translate(sh.x, sh.y);
+        ctx.rotate(sh.rot);
+        ctx.fillStyle = sh.color;
+        ctx.fillRect(-sh.size / 2, -sh.size / 2, sh.size, sh.size * 0.6);
         ctx.restore();
       }
 
+      // Popups
       for (const pop of popups) {
         ctx.save();
         ctx.globalAlpha = Math.max(0, pop.alpha);
-        ctx.font = pop.isSuper ? "900 20px -apple-system, BlinkMacSystemFont, sans-serif" : "800 16px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.font = "900 18px -apple-system, BlinkMacSystemFont, sans-serif";
         ctx.fillStyle = pop.color;
         ctx.textAlign = "center";
         ctx.shadowColor = pop.color;
