@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Tower Builder Deluxe</title>
+  <script src="https://telegram.org/js/games.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent-cyan: #00f2fe;
+      --accent-purple: #c084fc;
+      --accent-gold: #fbbf24;
+      --accent-rose: #f43f5e;
+      --glass-bg: rgba(18, 12, 38, 0.78);
+      --glass-border: rgba(255, 255, 255, 0.16);
+      --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(99, 102, 241, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050212;
+      touch-action: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #ffffff;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 440px;
+      max-height: 850px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: var(--glass-shadow);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #090518;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    /* Top Sound HUD Button */
+    .hud-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 10px;
+      z-index: 30;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      background: rgba(24, 16, 48, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.9);
+      background: rgba(56, 189, 248, 0.3);
+    }
+
+    /* UI Glass Panels & Overlays */
+    .ui-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      background: rgba(7, 4, 18, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: scale(0.96);
+    }
+
+    .ui-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    .glass-card {
+      width: 100%;
+      max-width: 340px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 24px 20px;
+      box-shadow: var(--glass-shadow);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      animation: floatIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes floatIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .title-pill {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.18);
+      padding: 5px 14px;
+      border-radius: 100px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      display: inline-block;
+    }
+
+    .game-title {
+      font-size: 28px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ffffff 15%, #38bdf8 55%, #c084fc 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.15;
+      text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+    }
+
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      width: 100%;
+      margin: 2px 0;
+    }
+
+    .tip-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 9px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    .tip-chip .emoji {
+      font-size: 20px;
+    }
+
+    .tip-chip .highlight {
+      font-weight: 800;
+      color: var(--accent-gold);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 16px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #041226;
+      background: linear-gradient(135deg, #00f2fe 0%, #38bdf8 50%, #818cf8 100%);
+      box-shadow: 0 8px 25px rgba(0, 242, 254, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.96);
+      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+    }
+
+    /* Scoreboard stats */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      gap: 10px;
+    }
+
+    .stat-box {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      margin-bottom: 2px;
+    }
+
+    .stat-val {
+      font-size: 24px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .stat-val.gold {
+      color: var(--accent-gold);
+      text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+    }
+
+    .badge-new-record {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      color: #facc15;
+      background: rgba(250, 204, 21, 0.18);
+      border: 1px solid rgba(250, 204, 21, 0.45);
+      padding: 4px 12px;
+      border-radius: 100px;
+      animation: pulseGlow 1.2s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { box-shadow: 0 0 5px rgba(250, 204, 21, 0.3); }
+      to { box-shadow: 0 0 16px rgba(250, 204, 21, 0.8); }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Top Sound Controls -->
+    <div class="hud-controls">
+      <button id="sound-btn" class="icon-btn" onclick="toggleMute()" title="Sound On/Off">🔊</button>
+    </div>
+
+    <!-- Start Overlay Screen -->
+    <div id="start-overlay" class="ui-overlay active">
+      <div class="glass-card">
+        <div class="title-pill">Cosmic Stacker Arcade</div>
+        <div class="game-title">🏗️ Tower Builder 🏗️</div>
+        <p style="font-size: 13px; color: #cbd5e1; line-height: 1.4;">
+          Tap precisely to stack floors into the cosmos!
+        </p>
+
+        <div class="tips-grid">
+          <div class="tip-chip">
+            <span class="emoji">🎯</span>
+            <span>Precision</span>
+            <span class="highlight">Exact Match</span>
+          </div>
+          <div class="tip-chip">
+            <span class="emoji">⚡</span>
+            <span>Combos</span>
+            <span class="highlight">Expands Block</span>
+          </div>
+          <div class="tip-chip">
+            <span class="emoji">🌌</span>
+            <span>Reach Orbit</span>
+            <span class="highlight">Infinite Sky</span>
+          </div>
+          <div class="tip-chip">
+            <span class="emoji">🏆</span>
+            <span>Climb Floors</span>
+            <span class="highlight">+1 Per Stack</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="startGame()">
+          <span>START CLIMBING</span>
+          <span>⚡</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Over Overlay Screen -->
+    <div id="gameover-overlay" class="ui-overlay">
+      <div class="glass-card">
+        <div id="gameover-pill" class="title-pill" style="color: #f87171; background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4);">
+          Tower Collapsed
+        </div>
+
+        <div id="gameover-title" class="game-title" style="font-size: 26px;">🏗️ Tower Finished!</div>
+
+        <div id="record-container" style="display: none;">
+          <div class="badge-new-record">🏆 NEW RECORD HEIGHT! 🏆</div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-box">
+            <span class="stat-label">Floors</span>
+            <span id="final-score" class="stat-val">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Perfects</span>
+            <span id="final-combo" class="stat-val" style="color: #38bdf8;">0x</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Best</span>
+            <span id="best-score" class="stat-val gold">0</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="startGame()">
+          <span>BUILD AGAIN</span>
+          <span>🔄</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // Telegram Session & Canvas Initialization
+    // =========================================================================
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get("user_id");
+    const chatId = urlParams.get("chat_id");
+    const messageId = urlParams.get("msg_id");
+    const inlineId = urlParams.get("inline_id");
+    const botToken = urlParams.get("token");
+
+    const LOGICAL_WIDTH = 360;
+    const LOGICAL_HEIGHT = 640;
+    let dpr = window.devicePixelRatio || 1;
+
+    function resizeCanvas() {
+      const container = document.getElementById("game-container");
+      const rect = container.getBoundingClientRect();
+      dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(canvas.width / LOGICAL_WIDTH, canvas.height / LOGICAL_HEIGHT);
+      ctx.imageSmoothingEnabled = true;
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 150));
+    resizeCanvas();
+
+    // =========================================================================
+    // Web Audio Synthesizer Engine (Musical pitch ascension)
+    // =========================================================================
+    let isMuted = localStorage.getItem("tower_muted") === "true";
+    const soundBtn = document.getElementById("sound-btn");
+    soundBtn.innerText = isMuted ? "🔇" : "🔊";
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      localStorage.setItem("tower_muted", isMuted ? "true" : "false");
+      soundBtn.innerText = isMuted ? "🔇" : "🔊";
+      if (!isMuted) AudioEngine.init();
+    }
+
+    function triggerHaptic(type) {
+      try {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+          if (type === "place") window.Telegram.WebApp.HapticFeedback.impactOccurred("light");
+          else if (type === "perfect") window.Telegram.WebApp.HapticFeedback.impactOccurred("medium");
+          else if (type === "bonus") window.Telegram.WebApp.HapticFeedback.notificationOccurred("success");
+          else if (type === "miss") window.Telegram.WebApp.HapticFeedback.notificationOccurred("error");
+        } else if (navigator.vibrate) {
+          if (type === "place") navigator.vibrate(12);
+          else if (type === "perfect") navigator.vibrate([15, 20, 25]);
+          else if (type === "miss") navigator.vibrate([60, 40, 80]);
+        }
+      } catch (e) {}
+    }
+
+    const PENTATONIC_SCALE = [
+      261.63, 293.66, 329.63, 392.00, 440.00, 523.25,
+      587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66,
+      1318.51, 1567.98, 1760.00, 2093.00
+    ];
+
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+      },
+      playStack(level, isPerfect = false, comboCount = 0) {
+        if (isMuted) return;
+        try {
+          this.init();
+          const baseFreq = PENTATONIC_SCALE[level % PENTATONIC_SCALE.length];
+          const freq = isPerfect ? baseFreq * 1.25 : baseFreq;
+
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = isPerfect ? "triangle" : "sine";
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          if (isPerfect) {
+            osc.frequency.exponentialRampToValueAtTime(freq * 1.5, this.ctx.currentTime + 0.12);
+          }
+
+          gain.gain.setValueAtTime(isPerfect ? 0.3 : 0.2, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (isPerfect ? 0.28 : 0.16));
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + (isPerfect ? 0.28 : 0.16));
+
+          // Bonus chime for combo streaks
+          if (comboCount >= 3) {
+            const chimeOsc = this.ctx.createOscillator();
+            const chimeGain = this.ctx.createGain();
+            chimeOsc.type = "sine";
+            chimeOsc.frequency.setValueAtTime(freq * 2, this.ctx.currentTime + 0.05);
+            chimeGain.gain.setValueAtTime(0.18, this.ctx.currentTime + 0.05);
+            chimeGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+            chimeOsc.connect(chimeGain);
+            chimeGain.connect(this.ctx.destination);
+            chimeOsc.start(this.ctx.currentTime + 0.05);
+            chimeOsc.stop(this.ctx.currentTime + 0.3);
+          }
+        } catch (e) {}
+      },
+      playSlice() {
+        if (isMuted) return;
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(90, this.ctx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.12);
+        } catch (e) {}
+      },
+      playGameOver() {
+        if (isMuted) return;
+        try {
+          this.init();
+          const chords = [392, 349.23, 293.66, 220];
+          chords.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.09);
+            osc.frequency.exponentialRampToValueAtTime(freq * 0.7, this.ctx.currentTime + i * 0.09 + 0.25);
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime + i * 0.09);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.09 + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + i * 0.09);
+            osc.stop(this.ctx.currentTime + i * 0.09 + 0.25);
+          });
+        } catch (e) {}
+      },
+      playFanfare() {
+        if (isMuted) return;
+        try {
+          this.init();
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((f, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.value = f;
+            const t = this.ctx.currentTime + i * 0.08;
+            gain.gain.setValueAtTime(0.25, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.4);
+          });
+        } catch (e) {}
+      }
+    };
+
+    // =========================================================================
+    // Game Physics & Block Entities
+    // =========================================================================
+    const BLOCK_HEIGHT = 28;
+    const INITIAL_WIDTH = 180;
+    const BASE_Y = 520;
+
+    let score = 0;
+    let highscore = parseInt(localStorage.getItem("tower_hi") || "0", 10);
+    let combo = 0;
+    let maxCombo = 0;
+    let isPlaying = false;
+    let gameOver = false;
+
+    let cameraY = 0;
+    let targetCameraY = 0;
+
+    let stack = [];
+    let activeBlock = null;
+    let debris = [];
+    let particles = [];
+    let floaters = [];
+    let stars = [];
+
+    // Pre-generate background twinkling stars
+    for (let i = 0; i < 45; i++) {
+      stars.push({
+        x: Math.random() * LOGICAL_WIDTH,
+        y: Math.random() * LOGICAL_HEIGHT,
+        size: Math.random() * 2 + 0.8,
+        alpha: Math.random() * 0.7 + 0.3,
+        twinkleSpeed: Math.random() * 2 + 1,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+
+    function getHue(level) {
+      return (level * 9 + 185) % 360;
+    }
+
+    function getBlockColor(level) {
+      const hue = getHue(level);
+      return {
+        top: `hsl(${hue}, 85%, 68%)`,
+        main: `hsl(${hue}, 75%, 52%)`,
+        shadow: `hsl(${hue}, 80%, 34%)`,
+        glow: `hsla(${hue}, 85%, 60%, 0.45)`
+      };
+    }
+
+    function createDebris(x, y, width, vx = 0) {
+      debris.push({
+        x,
+        y,
+        width,
+        height: BLOCK_HEIGHT,
+        color: getBlockColor(score),
+        vx,
+        vy: -1.5,
+        rotation: 0,
+        vRot: (Math.random() - 0.5) * 0.12,
+        alpha: 1
+      });
+    }
+
+    function createSparkleBurst(x, y, count = 16, color = "#00f2fe") {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4.5 + 1.5;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.2,
+          radius: Math.random() * 3 + 1.5,
+          color,
+          alpha: 1,
+          decay: Math.random() * 0.03 + 0.02
+        });
+      }
+    }
+
+    function addFloater(x, y, text, color = "#fbbf24") {
+      floaters.push({
+        x,
+        y,
+        text,
+        color,
+        alpha: 1,
+        vy: -2.0
+      });
+    }
+
+    function spawnNextBlock() {
+      const prevBlock = stack[stack.length - 1];
+      const level = stack.length;
+      const speed = 2.8 + Math.min(5.2, level * 0.08);
+
+      const direction = level % 2 === 1 ? 1 : -1;
+      const startX = direction === 1 ? -prevBlock.width - 20 : LOGICAL_WIDTH + 20;
+
+      activeBlock = {
+        x: startX,
+        y: prevBlock.y - BLOCK_HEIGHT,
+        width: prevBlock.width,
+        height: BLOCK_HEIGHT,
+        speed: speed * direction,
+        color: getBlockColor(level)
+      };
+
+      // Smooth camera follows top of tower
+      targetCameraY = Math.max(0, (stack.length - 5) * BLOCK_HEIGHT);
+    }
+
+    function dropBlock() {
+      if (!isPlaying || gameOver || !activeBlock) return;
+
+      const prevBlock = stack[stack.length - 1];
+      const diff = activeBlock.x - prevBlock.x;
+      const absDiff = Math.abs(diff);
+
+      const PERFECT_TOLERANCE = 3.5;
+
+      if (absDiff <= PERFECT_TOLERANCE) {
+        // --- PERFECT PLACEMENT ---
+        activeBlock.x = prevBlock.x; // Snap alignment
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+        score++;
+
+        // Expand block slightly on high combos as reward
+        if (combo >= 5 && activeBlock.width < INITIAL_WIDTH) {
+          activeBlock.width = Math.min(INITIAL_WIDTH, activeBlock.width + 12);
+          activeBlock.x = Math.max(10, activeBlock.x - 6);
+          addFloater(activeBlock.x + activeBlock.width / 2, activeBlock.y - 12, "✨ SIZE UP! ✨", "#38bdf8");
+        }
+
+        AudioEngine.playStack(score, true, combo);
+        triggerHaptic("perfect");
+
+        const comboText = combo > 1 ? `PERFECT x${combo}! 🔥` : "PERFECT! ✨";
+        addFloater(activeBlock.x + activeBlock.width / 2, activeBlock.y - 10, comboText, "#facc15");
+        createSparkleBurst(activeBlock.x + activeBlock.width / 2, activeBlock.y + BLOCK_HEIGHT / 2, 22, "#facc15");
+
+        stack.push(activeBlock);
+        spawnNextBlock();
+      } else if (absDiff < activeBlock.width) {
+        // --- OVERHANG SLICE ---
+        combo = 0;
+        score++;
+
+        AudioEngine.playStack(score, false, 0);
+        AudioEngine.playSlice();
+        triggerHaptic("place");
+
+        let placedX, placedWidth, debrisX, debrisWidth, debrisVx;
+
+        if (diff > 0) {
+          // Overhang to the right
+          placedX = activeBlock.x;
+          placedWidth = activeBlock.width - diff;
+          debrisX = activeBlock.x + placedWidth;
+          debrisWidth = diff;
+          debrisVx = 2.2;
+        } else {
+          // Overhang to the left
+          placedX = prevBlock.x;
+          placedWidth = activeBlock.width + diff;
+          debrisX = activeBlock.x;
+          debrisWidth = -diff;
+          debrisVx = -2.2;
+        }
+
+        activeBlock.x = placedX;
+        activeBlock.width = placedWidth;
+
+        createDebris(debrisX, activeBlock.y, debrisWidth, debrisVx);
+        createSparkleBurst(debrisX + debrisWidth / 2, activeBlock.y + BLOCK_HEIGHT / 2, 10, activeBlock.color.main);
+
+        stack.push(activeBlock);
+        spawnNextBlock();
+      } else {
+        // --- COMPLETE MISS -> GAME OVER ---
+        createDebris(activeBlock.x, activeBlock.y, activeBlock.width, activeBlock.speed > 0 ? 3.5 : -3.5);
+        activeBlock = null;
+        endGame();
+      }
+    }
+
+    // =========================================================================
+    // User Input Handling (Touch, Mouse & Keyboard)
+    // =========================================================================
+    canvas.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (!isPlaying) {
+        if (!gameOver) startGame();
+      } else {
+        dropBlock();
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.key === " ") {
+        e.preventDefault();
+        if (!isPlaying) {
+          if (!gameOver) startGame();
+        } else {
+          dropBlock();
+        }
+      }
+    });
+
+    // =========================================================================
+    // Telegram Score Sync
+    // =========================================================================
+    async function syncTelegramScore(finalScore) {
+      if (!botToken || !userId || finalScore <= 0) return;
+      const targetIdNum = parseInt(userId, 10);
+      if (isNaN(targetIdNum) || targetIdNum <= 0) return;
+
+      const body = {
+        user_id: targetIdNum,
+        score: parseInt(finalScore, 10),
+        force: true,
+        disable_edit_message: false
+      };
+
+      if (inlineId && inlineId.trim() !== "" && inlineId !== "null" && inlineId !== "undefined") {
+        body.inline_message_id = inlineId.trim();
+      } else if (chatId && messageId) {
+        const cId = parseInt(chatId, 10);
+        const mId = parseInt(messageId, 10);
+        if (!isNaN(cId) && !isNaN(mId)) {
+          body.chat_id = cId;
+          body.message_id = mId;
+        } else {
+          return;
+        }
+      } else {
+        return;
+      }
+
+      try {
+        await fetch(`https://api.telegram.org/bot${botToken}/setGameScore`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      } catch (err) {
+        console.warn("Score sync warning:", err);
+      }
+    }
+
+    // =========================================================================
+    // Lifecycle Management
+    // =========================================================================
+    function startGame() {
+      AudioEngine.init();
+      score = 0;
+      combo = 0;
+      maxCombo = 0;
+      cameraY = 0;
+      targetCameraY = 0;
+      debris = [];
+      particles = [];
+      floaters = [];
+
+      gameOver = false;
+      isPlaying = true;
+
+      // Initialize base foundation block
+      stack = [{
+        x: (LOGICAL_WIDTH - INITIAL_WIDTH) / 2,
+        y: BASE_Y,
+        width: INITIAL_WIDTH,
+        height: BLOCK_HEIGHT,
+        color: getBlockColor(0)
+      }];
+
+      spawnNextBlock();
+
+      document.getElementById("start-overlay").classList.remove("active");
+      document.getElementById("gameover-overlay").classList.remove("active");
+      document.getElementById("record-container").style.display = "none";
+    }
+
+    function endGame() {
+      if (gameOver) return;
+      gameOver = true;
+      isPlaying = false;
+
+      AudioEngine.playGameOver();
+      triggerHaptic("miss");
+
+      const isNewBest = score > highscore;
+      if (isNewBest) {
+        highscore = score;
+        localStorage.setItem("tower_hi", highscore);
+        setTimeout(() => {
+          AudioEngine.playFanfare();
+        }, 350);
+      }
+
+      // Sync score to Telegram
+      syncTelegramScore(score);
+      try {
+        if (window.TelegramGameProxy && typeof window.TelegramGameProxy.setScore === "function") {
+          window.TelegramGameProxy.setScore(score);
+        }
+      } catch (e) {}
+
+      // Update overlay
+      document.getElementById("final-score").innerText = score;
+      document.getElementById("final-combo").innerText = `${maxCombo}x`;
+      document.getElementById("best-score").innerText = highscore;
+
+      if (isNewBest && score > 0) {
+        document.getElementById("record-container").style.display = "block";
+        document.getElementById("gameover-title").innerText = "👑 NEW RECORD HEIGHT!";
+        document.getElementById("gameover-pill").innerText = "GLORIOUS TOWER";
+        document.getElementById("gameover-pill").style.color = "#facc15";
+        document.getElementById("gameover-pill").style.background = "rgba(250, 204, 21, 0.2)";
+        document.getElementById("gameover-pill").style.borderColor = "rgba(250, 204, 21, 0.4)";
+      } else {
+        document.getElementById("record-container").style.display = "none";
+        document.getElementById("gameover-title").innerText = "🏗️ Tower Finished!";
+        document.getElementById("gameover-pill").innerText = "TOWER COLLAPSED";
+        document.getElementById("gameover-pill").style.color = "#f87171";
+        document.getElementById("gameover-pill").style.background = "rgba(239, 68, 68, 0.2)";
+        document.getElementById("gameover-pill").style.borderColor = "rgba(239, 68, 68, 0.4)";
+      }
+
+      setTimeout(() => {
+        document.getElementById("gameover-overlay").classList.add("active");
+      }, 500);
+    }
+
+    // =========================================================================
+    // Delta-Time Update & Physics Loop
+    // =========================================================================
+    let lastTime = performance.now();
+
+    function update(dt) {
+      // Smooth exponential camera follow
+      cameraY += (targetCameraY - cameraY) * (1 - Math.exp(-6.5 * dt));
+
+      // Move active sliding block
+      if (activeBlock && isPlaying && !gameOver) {
+        activeBlock.x += activeBlock.speed * 60 * dt;
+
+        // Bounce off canvas side walls
+        if (activeBlock.speed > 0 && activeBlock.x + activeBlock.width > LOGICAL_WIDTH + 35) {
+          activeBlock.speed = -Math.abs(activeBlock.speed);
+        } else if (activeBlock.speed < 0 && activeBlock.x < -35) {
+          activeBlock.speed = Math.abs(activeBlock.speed);
+        }
+      }
+
+      // Update falling sliced debris
+      for (let i = 0; i < debris.length; i++) {
+        const d = debris[i];
+        d.x += d.vx * 60 * dt;
+        d.y += d.vy * 60 * dt;
+        d.vy += 22 * dt; // gravity
+        d.rotation += d.vRot;
+        d.alpha -= 0.6 * dt;
+
+        if (d.alpha <= 0 || d.y - cameraY > LOGICAL_HEIGHT + 100) {
+          debris.splice(i, 1);
+          i--;
+        }
+      }
+
+      // Update sparkle particles
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx * 60 * dt;
+        p.y += p.vy * 60 * dt;
+        p.vy += 8 * dt;
+        p.alpha -= p.decay * 60 * dt;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          i--;
+        }
+      }
+
+      // Update floating score/combo texts
+      for (let i = 0; i < floaters.length; i++) {
+        const f = floaters[i];
+        f.y += f.vy * 60 * dt;
+        f.alpha -= 1.1 * dt;
+
+        if (f.alpha <= 0) {
+          floaters.splice(i, 1);
+          i--;
+        }
+      }
+    }
+
+    // =========================================================================
+    // 3D Beveled Block Drawing Routine
+    // =========================================================================
+    function drawBlock(b, yOffset = 0, isFoundation = false) {
+      const drawY = b.y + yOffset;
+      if (drawY > LOGICAL_HEIGHT + 50 || drawY + b.height < -50) return;
+
+      ctx.save();
+
+      // Ambient Underglow
+      ctx.fillStyle = b.color.glow;
+      ctx.fillRect(b.x - 4, drawY - 2, b.width + 8, b.height + 6);
+
+      // Main Block Body
+      ctx.fillStyle = b.color.main;
+      ctx.fillRect(b.x, drawY, b.width, b.height);
+
+      // Top Specular Highlight Bevel
+      ctx.fillStyle = b.color.top;
+      ctx.fillRect(b.x, drawY, b.width, 4);
+
+      // Bottom Shadow Bevel
+      ctx.fillStyle = b.color.shadow;
+      ctx.fillRect(b.x, drawY + b.height - 4, b.width, 4);
+
+      // Left Highlight Strip
+      ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+      ctx.fillRect(b.x, drawY, 3, b.height);
+
+      // Right Shadow Strip
+      ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+      ctx.fillRect(b.x + b.width - 3, drawY, 3, b.height);
+
+      // Subtle Foundation Stamping
+      if (isFoundation) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.font = "800 11px 'Outfit', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("BASE FOUNDATION", b.x + b.width / 2, drawY + b.height / 2);
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // Canvas Render Loop
+    // =========================================================================
+    function draw() {
+      ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+      // Atmospheric Evolving Sky Gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
+      if (score < 20) {
+        // City Sunset / Twilight
+        skyGrad.addColorStop(0, "#1e1045");
+        skyGrad.addColorStop(0.5, "#14092b");
+        skyGrad.addColorStop(1, "#070214");
+      } else if (score < 45) {
+        // Stratosphere Aurora
+        skyGrad.addColorStop(0, "#064e3b");
+        skyGrad.addColorStop(0.5, "#0d1b2a");
+        skyGrad.addColorStop(1, "#050212");
+      } else {
+        // Deep Space Cosmos
+        skyGrad.addColorStop(0, "#311042");
+        skyGrad.addColorStop(0.5, "#0b061e");
+        skyGrad.addColorStop(1, "#03000a");
+      }
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+      // Background Twinkling Stars
+      const nowSec = performance.now() / 1000;
+      for (const s of stars) {
+        const twinkle = (Math.sin(nowSec * s.twinkleSpeed + s.phase) + 1) * 0.5;
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha * (0.35 + 0.65 * twinkle)})`;
+        ctx.beginPath();
+        ctx.arc(s.x, (s.y + cameraY * 0.2) % LOGICAL_HEIGHT, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw Stacked Tower Blocks (offset by camera)
+      for (let i = 0; i < stack.length; i++) {
+        drawBlock(stack[i], cameraY, i === 0);
+      }
+
+      // Draw Active Sliding Block
+      if (activeBlock) {
+        drawBlock(activeBlock, cameraY);
+      }
+
+      // Draw Falling Debris
+      for (const d of debris) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, d.alpha);
+        ctx.translate(d.x + d.width / 2, d.y + d.height / 2 + cameraY);
+        ctx.rotate(d.rotation);
+
+        ctx.fillStyle = d.color.main;
+        ctx.fillRect(-d.width / 2, -d.height / 2, d.width, d.height);
+
+        ctx.fillStyle = d.color.top;
+        ctx.fillRect(-d.width / 2, -d.height / 2, d.width, 3);
+        ctx.restore();
+      }
+
+      // Draw Sparkle Particles
+      for (const p of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y + cameraY, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Draw Floating Texts
+      for (const f of floaters) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, f.alpha);
+        ctx.font = "900 16px 'Outfit', sans-serif";
+        ctx.fillStyle = f.color;
+        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+        ctx.shadowBlur = 8;
+        ctx.fillText(f.text, f.x, f.y + cameraY);
+        ctx.restore();
+      }
+
+      // Live In-Game HUD (Top overlay)
+      if (isPlaying) {
+        // Floor Score Display
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 36px 'Outfit', sans-serif";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(56, 189, 248, 0.5)";
+        ctx.shadowBlur = 12;
+        ctx.fillText(`${score}`, LOGICAL_WIDTH / 2, 70);
+        ctx.shadowBlur = 0;
+
+        ctx.font = "800 12px 'Outfit', sans-serif";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText("FLOORS BUILT", LOGICAL_WIDTH / 2, 92);
+
+        // Combo Streak Indicator
+        if (combo >= 2) {
+          ctx.save();
+          const scale = 1 + Math.min(0.25, (combo % 6) * 0.04);
+          ctx.translate(LOGICAL_WIDTH / 2, 120);
+          ctx.scale(scale, scale);
+          ctx.font = "900 15px 'Outfit', sans-serif";
+          ctx.fillStyle = "#facc15";
+          ctx.textAlign = "center";
+          ctx.shadowColor = "rgba(250, 204, 21, 0.6)";
+          ctx.shadowBlur = 10;
+          ctx.fillText(`🔥 STREAK ${combo}x`, 0, 0);
+          ctx.restore();
+        }
+      }
+    }
+
+    // =========================================================================
+    // Main Game Loop Engine
+    // =========================================================================
+    function gameLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.06);
+      lastTime = now;
+
+      update(dt);
+      draw();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
