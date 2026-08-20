@@ -229,7 +229,7 @@
       position: relative;
       width: 100%;
       height: 100%;
-      background: url("board.jpg") no-repeat center center;
+      background: #0f172a url("board.jpg") no-repeat center center;
       background-size: 100% 100%;
       border: 2px solid rgba(255, 255, 255, 0.2);
       border-radius: 18px;
@@ -834,7 +834,7 @@
     };
 
     // =========================================================================
-    // Game Rules & Networking Setup
+    // Game Rules, Board Asset & Networking Setup
     // =========================================================================
     const urlParams = new URLSearchParams(window.location.search);
     const myUserId = urlParams.get("user_id") || "";
@@ -873,8 +873,45 @@
 
     let p1Tile = 0;
     let p2Tile = 0;
-    let p1RenderPos = { x: 30, y: 570, hopOffset: 0 };
-    let p2RenderPos = { x: 30, y: 570, hopOffset: 0 };
+
+    // Preload Board Image
+    const boardImg = new Image();
+    boardImg.src = "board.jpg";
+    let boardLoaded = false;
+    boardImg.onload = () => { boardLoaded = true; };
+
+    function getTileCenter(tileNum, roleType = "host") {
+      const isP1 = (roleType === "host");
+      if (tileNum <= 0) {
+        return {
+          x: isP1 ? 20 : 44,
+          y: isP1 ? 576 : 560
+        };
+      }
+      const index = tileNum - 1;
+      const rowFromBottom = Math.floor(index / 10);
+      const col = index % 10;
+      const actualCol = (rowFromBottom % 2 === 0) ? col : (9 - col);
+      const actualRow = 9 - rowFromBottom;
+      const tileSize = 60;
+      const baseX = actualCol * tileSize + tileSize / 2;
+      const baseY = actualRow * tileSize + tileSize / 2;
+
+      // When both players are on the exact same tile, offset positions clearly
+      const isSameTile = (p1Tile === p2Tile);
+      const offsetX = isSameTile ? (isP1 ? -12 : 12) : 0;
+      const offsetY = isSameTile ? (isP1 ? 6 : -6) : 0;
+
+      return {
+        x: baseX + offsetX,
+        y: baseY + offsetY
+      };
+    }
+
+    let p1RenderPos = getTileCenter(0, "host");
+    p1RenderPos.hopOffset = 0;
+    let p2RenderPos = getTileCenter(0, "client");
+    p2RenderPos.hopOffset = 0;
 
     let role = "host";
     let hostUserId = myUserId;
@@ -894,20 +931,6 @@
     // Dynamic particle & floating event notification list
     let particles = [];
     let boardFloaters = [];
-
-    function getTileCenter(tileNum) {
-      if (tileNum <= 0) return { x: 30, y: 570 };
-      const index = tileNum - 1;
-      const rowFromBottom = Math.floor(index / 10);
-      const col = index % 10;
-      const actualCol = (rowFromBottom % 2 === 0) ? col : (9 - col);
-      const actualRow = 9 - rowFromBottom;
-      const tileSize = 60;
-      return {
-        x: actualCol * tileSize + tileSize / 2,
-        y: actualRow * tileSize + tileSize / 2
-      };
-    }
 
     const DICE_ORIENTATIONS = {
       1: "rotateY(0deg) rotateX(0deg)",
@@ -1024,8 +1047,10 @@
             hostUserId = data.hostUserId;
             p1Tile = data.p1Tile;
             p2Tile = data.p2Tile;
-            p1RenderPos = getTileCenter(p1Tile);
-            p2RenderPos = getTileCenter(p2Tile);
+            p1RenderPos = getTileCenter(p1Tile, "host");
+            p1RenderPos.hopOffset = 0;
+            p2RenderPos = getTileCenter(p2Tile, "client");
+            p2RenderPos.hopOffset = 0;
             currentTurnRole = data.currentTurnRole;
             rolledNumber = 0;
             isDiceRolling = false;
@@ -1059,8 +1084,10 @@
       winLogged = false;
       p1Tile = 0;
       p2Tile = 0;
-      p1RenderPos = getTileCenter(0);
-      p2RenderPos = getTileCenter(0);
+      p1RenderPos = getTileCenter(0, "host");
+      p1RenderPos.hopOffset = 0;
+      p2RenderPos = getTileCenter(0, "client");
+      p2RenderPos.hopOffset = 0;
       currentTurnRole = "host";
       rolledNumber = 0;
       isDiceRolling = false;
@@ -1191,7 +1218,7 @@
         if (playerRole === "host") p1Tile = stepTile;
         else p2Tile = stepTile;
 
-        const targetCoords = getTileCenter(stepTile);
+        const targetCoords = getTileCenter(stepTile, playerRole);
         await hopToCoordinate(playerRole, targetCoords);
         AudioEngine.playHop();
         spawnParticleBurst(targetCoords.x, targetCoords.y, color, 8);
@@ -1200,7 +1227,7 @@
 
       if (specialType > 0) {
         await new Promise(r => setTimeout(r, 180));
-        const finalCoords = getTileCenter(finalTile);
+        const finalCoords = getTileCenter(finalTile, playerRole);
 
         if (specialType === 1) {
           AudioEngine.playLadder();
@@ -1334,7 +1361,6 @@
       ctx.save();
 
       const isP1 = (roleType === "host");
-      const shadowScale = Math.max(0.35, 1 - hopOffset / 38);
       const tokenY = y - hopOffset;
 
       // 1. Dynamic 3D Drop Shadow on board surface
@@ -1342,81 +1368,88 @@
       ctx.translate(x, y + 10);
       ctx.scale(1, 0.42);
       ctx.beginPath();
-      ctx.arc(0, 0, 16 * shadowScale, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(0, 0, 0, ${0.5 * shadowScale})`;
-      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-      ctx.shadowBlur = 8 + hopOffset * 0.4;
+      ctx.arc(0, 0, Math.max(8, 20 - hopOffset * 0.4), 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
       ctx.fill();
       ctx.restore();
 
       // 2. Active Player Turn Ripple / Breathing Glow
       if (isTurn) {
-        const pulse = (Math.sin(performance.now() * 0.007) + 1) * 0.5;
-        const glowRadius = 22 + pulse * 6;
-        const rippleGrad = ctx.createRadialGradient(x, tokenY, 10, x, tokenY, glowRadius);
-        rippleGrad.addColorStop(0, isP1 ? "rgba(0, 242, 254, 0.5)" : "rgba(255, 8, 68, 0.5)");
-        rippleGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-
-        ctx.fillStyle = rippleGrad;
+        const pulse = (Math.sin(performance.now() * 0.008) + 1) * 0.5;
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(x, tokenY, glowRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = isP1 ? `rgba(56, 189, 248, ${0.6 + 0.4 * pulse})` : `rgba(244, 63, 94, ${0.6 + 0.4 * pulse})`;
-        ctx.lineWidth = 2 + pulse * 1.5;
-        ctx.beginPath();
-        ctx.arc(x, tokenY, 20 + pulse * 4, 0, Math.PI * 2);
+        ctx.arc(x, tokenY, 26 + pulse * 6, 0, Math.PI * 2);
+        ctx.strokeStyle = isP1 ? `rgba(0, 242, 254, ${0.7 + 0.3 * pulse})` : `rgba(255, 8, 68, ${0.7 + 0.3 * pulse})`;
+        ctx.lineWidth = 3;
         ctx.stroke();
+        ctx.restore();
       }
 
-      // 3. Metallic Pawn Outer Rim / Bezel Ring
-      const rimGrad = ctx.createLinearGradient(x - 16, tokenY - 16, x + 16, tokenY + 16);
-      rimGrad.addColorStop(0, "#ffffff");
-      rimGrad.addColorStop(0.3, isP1 ? "#38bdf8" : "#fb7185");
-      rimGrad.addColorStop(0.7, isP1 ? "#0369a1" : "#9f1239");
-      rimGrad.addColorStop(1, "#0f172a");
-
+      // 3. Thick White Outer Border (for infinite contrast against any tile color)
       ctx.beginPath();
-      ctx.arc(x, tokenY, 16, 0, Math.PI * 2);
-      ctx.fillStyle = rimGrad;
-      ctx.shadowColor = isP1 ? "rgba(0, 242, 254, 0.75)" : "rgba(255, 8, 68, 0.75)";
-      ctx.shadowBlur = isTurn ? 16 : 8;
+      ctx.arc(x, tokenY, 22, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = isP1 ? "rgba(0, 242, 254, 0.9)" : "rgba(255, 8, 68, 0.9)";
+      ctx.shadowBlur = 14;
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // 4. Vibrant Gemstone Core (Spherical 3D Radial Depth)
-      const gemGrad = ctx.createRadialGradient(x - 5, tokenY - 5, 2, x, tokenY, 14);
+      // 4. Vibrant Solid Outer Color Rim
+      ctx.beginPath();
+      ctx.arc(x, tokenY, 19.5, 0, Math.PI * 2);
+      ctx.fillStyle = isP1 ? "#0284c7" : "#be123c";
+      ctx.fill();
+
+      // 5. 3D Gemstone Dome
+      const innerGrad = ctx.createLinearGradient(x, tokenY - 18, x, tokenY + 18);
       if (isP1) {
-        gemGrad.addColorStop(0, "#e0f2fe");
-        gemGrad.addColorStop(0.35, "#38bdf8");
-        gemGrad.addColorStop(0.75, "#0284c7");
-        gemGrad.addColorStop(1, "#0c4a6e");
+        innerGrad.addColorStop(0, "#e0f2fe");
+        innerGrad.addColorStop(0.35, "#38bdf8");
+        innerGrad.addColorStop(1, "#0284c7");
       } else {
-        gemGrad.addColorStop(0, "#ffe4e6");
-        gemGrad.addColorStop(0.35, "#fb7185");
-        gemGrad.addColorStop(0.75, "#e11d48");
-        gemGrad.addColorStop(1, "#881337");
+        innerGrad.addColorStop(0, "#ffe4e6");
+        innerGrad.addColorStop(0.35, "#fb7185");
+        innerGrad.addColorStop(1, "#e11d48");
       }
-
       ctx.beginPath();
-      ctx.arc(x, tokenY, 13, 0, Math.PI * 2);
-      ctx.fillStyle = gemGrad;
+      ctx.arc(x, tokenY, 17, 0, Math.PI * 2);
+      ctx.fillStyle = innerGrad;
       ctx.fill();
 
-      // 5. Curved Glass Specular Highlight (High Gloss Finish)
+      // 6. Glass Specular Highlight Curve
       ctx.beginPath();
-      ctx.ellipse(x - 3, tokenY - 5, 7, 3.5, -Math.PI / 5, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+      ctx.ellipse(x, tokenY - 7, 9, 4, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
       ctx.fill();
 
-      // 6. Stamped Pawn Emblem Icon (⚡ or 🔥)
-      ctx.font = "bold 13px 'Outfit', sans-serif";
+      // 7. Center Emblem
+      ctx.font = "900 15px 'Outfit', sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
       ctx.shadowBlur = 4;
       ctx.fillText(isP1 ? "⚡" : "🔥", x, tokenY + 1);
+
+      // 8. Floating Player Badge Tag
+      const label = isP1 ? "P1" : "P2";
+      const tagY = tokenY - 28;
+      const tagW = 28;
+      const tagH = 16;
+      ctx.beginPath();
+      ctx.roundRect(x - tagW / 2, tagY - tagH / 2, tagW, tagH, 8);
+      ctx.fillStyle = isP1 ? "#0369a1" : "#9f1239";
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 4;
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 10px 'Outfit', sans-serif";
+      ctx.shadowBlur = 0;
+      ctx.fillText(label, x, tagY);
 
       ctx.restore();
     }
@@ -1427,19 +1460,20 @@
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Render P1 (Cyan Gem Pawn)
-      const p1X = p1RenderPos.x - (p1Tile === p2Tile && p1Tile > 0 ? 9 : 0);
-      const p1Y = p1RenderPos.y;
+      // 1. Draw Board Image as Canvas Base Layer
+      if (boardLoaded) {
+        ctx.drawImage(boardImg, 0, 0, canvas.width, canvas.height);
+      }
+
+      // 2. Render P1 (Cyan Gem Pawn)
       const isP1Turn = (currentTurnRole === "host");
-      drawRealisticToken(ctx, p1X, p1Y, p1RenderPos.hopOffset, "host", isP1Turn, p1Tile);
+      drawRealisticToken(ctx, p1RenderPos.x, p1RenderPos.y, p1RenderPos.hopOffset, "host", isP1Turn, p1Tile);
 
-      // 2. Render P2 (Ruby Gem Pawn)
-      const p2X = p2RenderPos.x + (p1Tile === p2Tile && p1Tile > 0 ? 9 : 0);
-      const p2Y = p2RenderPos.y;
+      // 3. Render P2 (Ruby Gem Pawn)
       const isP2Turn = (currentTurnRole === "client");
-      drawRealisticToken(ctx, p2X, p2Y, p2RenderPos.hopOffset, "client", isP2Turn, p2Tile);
+      drawRealisticToken(ctx, p2RenderPos.x, p2RenderPos.y, p2RenderPos.hopOffset, "client", isP2Turn, p2Tile);
 
-      // 3. Render Particles (Hop dust, ladders, snakes)
+      // 4. Render Particles (Hop dust, ladders, snakes)
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         p.x += p.vx;
@@ -1464,7 +1498,7 @@
         ctx.restore();
       }
 
-      // 4. Render Board Event Float Notifications
+      // 5. Render Board Event Float Notifications
       for (let i = 0; i < boardFloaters.length; i++) {
         const f = boardFloaters[i];
         f.y += f.vy;
