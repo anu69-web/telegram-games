@@ -607,7 +607,6 @@
         hardBevel: "#475569",
         ballColor: "#facc15",
         ballTrail: "#ca8a04",
-        splatterColor: "#1e3a8a",
         pillarGradient: ["#ffffff", "#e2e8f0", "#94a3b8"]
       },
       {
@@ -621,7 +620,6 @@
         hardBevel: "#3f3f46",
         ballColor: "#fbbf24",
         ballTrail: "#d97706",
-        splatterColor: "#991b1b",
         pillarGradient: ["#ffffff", "#e2e8f0", "#94a3b8"]
       },
       {
@@ -635,7 +633,6 @@
         hardBevel: "#334155",
         ballColor: "#9333ea",
         ballTrail: "#6b21a8",
-        splatterColor: "#7e22ce",
         pillarGradient: ["#ffffff", "#dcfce7", "#86efac"]
       },
       {
@@ -649,7 +646,6 @@
         hardBevel: "#4338ca",
         ballColor: "#06b6d4",
         ballTrail: "#0891b2",
-        splatterColor: "#9f1239",
         pillarGradient: ["#ffffff", "#ffe4e6", "#fecdd3"]
       }
     ];
@@ -670,7 +666,7 @@
     const PILLAR_RADIUS = 34;
     const DISK_OUTER_RADIUS = 122;
     const DISK_THICKNESS = 18;
-    const TILT = 0.36; // 3D vertical foreshortening
+    const TILT = 0.36;
 
     // Ball location: centered at front radius
     const BALL_RADIUS = 14;
@@ -681,7 +677,6 @@
 
     let floors = [];
     let shards = [];
-    let splatters = [];
     let popups = [];
 
     let isHoldingSmash = false;
@@ -726,7 +721,6 @@
       const floorCount = 20 + Math.min(lvl * 3, 40);
       floors = [];
       shards = [];
-      splatters = [];
 
       towerRotationSpeed = 0.022 + Math.min(lvl * 0.002, 0.015);
 
@@ -973,17 +967,6 @@
       }
     }
 
-    function addSplatter(floorIndex, angleOnDisk) {
-      const theme = THEMES[(level - 1) % THEMES.length];
-      splatters.push({
-        floorIndex,
-        localAngle: angleOnDisk,
-        radius: BALL_RADIUS * 1.3,
-        color: theme.splatterColor,
-        alpha: 0.85
-      });
-    }
-
     function addPopup(text, color = "#fff") {
       const pos = getBallScreenPosition();
       popups.push({
@@ -1040,10 +1023,9 @@
     // Update Engine
     // ==========================================
     function update() {
-      // 1. Auto-rotate the helix tower smoothly
       towerRotation += towerRotationSpeed;
 
-      // 2. Fireball / Fury Meter Logic
+      // Fireball / Fury Meter
       if (isFireballMode) {
         fireballTimer -= 0.016;
         furyMeter = (fireballTimer / 4.0) * 100;
@@ -1071,7 +1053,7 @@
         furyContainer.classList.remove("active");
       }
 
-      // 3. Ball Action: Bouncing vs Smashing
+      // Ball Physics
       const currentFloor = floors[ball.targetFloorIndex];
 
       if (!currentFloor) {
@@ -1088,15 +1070,12 @@
       }
 
       if (isHoldingSmash && gameState === "PLAYING") {
-        // SMASHING / DRILLING DOWNWARD!
         ball.isDrilling = true;
         ball.worldY += ball.drillSpeed;
 
         if (ball.worldY >= currentFloor.worldY) {
           ball.worldY = currentFloor.worldY;
 
-          // Check the sector at the front center (theta = 0)
-          // angle on disk:
           let angleOnDisk = ((-towerRotation) % (Math.PI * 2) + (Math.PI * 2)) % (Math.PI * 2);
           const sectorIndex = Math.floor(angleOnDisk / SECTOR_ANGLE) % SECTORS_PER_DISK;
           const sector = currentFloor.sectors[sectorIndex];
@@ -1129,7 +1108,6 @@
           }
         }
       } else {
-        // BOUNCING ON TOP OF CURRENT FLOOR
         ball.isDrilling = false;
         smashStreak = 0;
         ball.bounceTime += 0.16;
@@ -1138,27 +1116,21 @@
         const bounceOffset = Math.abs(Math.sin(ball.bounceTime)) * bounceHeight;
         ball.worldY = currentFloor.worldY - bounceOffset;
 
-        // On landing impact
         if (bounceOffset < 2) {
           ball.scaleX = 1.35;
           ball.scaleY = 0.65;
           if (gameState === "PLAYING") {
             AudioEngine.playBounce();
-            let angleOnDisk = ((-towerRotation) % (Math.PI * 2) + (Math.PI * 2)) % (Math.PI * 2);
-            addSplatter(ball.targetFloorIndex, angleOnDisk);
           }
         }
       }
 
-      // Recover scale
       ball.scaleX += (1 - ball.scaleX) * 0.2;
       ball.scaleY += (1 - ball.scaleY) * 0.2;
 
-      // Camera follow
       const targetCameraY = ball.worldY;
       cameraY += (targetCameraY - cameraY) * 0.2;
 
-      // Screen shake decay
       if (screenShake > 0) screenShake *= 0.86;
       if (screenShake < 0.1) screenShake = 0;
 
@@ -1186,7 +1158,7 @@
     }
 
     // ==========================================
-    // 3D Rendering Engine
+    // 3D Rendering Engine (Proper Depth Sorting)
     // ==========================================
     function draw() {
       ctx.clearRect(0, 0, width, height);
@@ -1202,16 +1174,19 @@
       const centerY = height / 2;
       const theme = THEMES[(level - 1) % THEMES.length];
 
-      // 1. Draw Central Pillar
+      // 1. Draw Back Sectors (sectors behind the pillar)
+      drawFloorsPass(centerX, centerY, theme, "back");
+
+      // 2. Draw Central Pillar (Completely masks and hides everything behind it!)
       drawPillar(centerX, centerY, theme);
 
-      // 2. Draw 3D Stacked Disk Platforms
-      drawFloors(centerX, centerY, theme);
+      // 3. Draw Front Sectors (sectors in front of the pillar)
+      drawFloorsPass(centerX, centerY, theme, "front");
 
-      // 3. Draw Bouncing / Smashing Ball
+      // 4. Draw Bouncing / Smashing Ball on top
       drawBall(centerX, centerY, theme);
 
-      // 4. Draw Flying Shards & Popups
+      // 5. Draw Flying Shards & Popups
       drawShardsAndPopups();
 
       ctx.restore();
@@ -1254,7 +1229,7 @@
       ctx.stroke();
     }
 
-    function drawFloors(centerX, centerY, theme) {
+    function drawFloorsPass(centerX, centerY, theme, pass) {
       const visibleRange = 650;
 
       for (let i = 0; i < floors.length; i++) {
@@ -1266,17 +1241,22 @@
 
         const screenY = centerY + relY;
 
-        // Draw sectors: back sectors first (cos < 0), then front sectors (cos >= 0)
-        const sectorIndices = [];
+        const sectorsToDraw = [];
         for (let s = 0; s < SECTORS_PER_DISK; s++) {
           const midAngle = s * SECTOR_ANGLE + SECTOR_ANGLE / 2 + towerRotation;
-          const zDepth = Math.cos(midAngle); // depth: +1 is front, -1 is back
-          sectorIndices.push({ s, zDepth });
+          const zDepth = Math.cos(midAngle); // > 0 is front, < 0 is back
+
+          if (pass === "back" && zDepth < 0) {
+            sectorsToDraw.push({ s, zDepth });
+          } else if (pass === "front" && zDepth >= 0) {
+            sectorsToDraw.push({ s, zDepth });
+          }
         }
 
-        sectorIndices.sort((a, b) => a.zDepth - b.zDepth);
+        // Sort sectors by depth so closer ones overlay smoothly
+        sectorsToDraw.sort((a, b) => a.zDepth - b.zDepth);
 
-        for (const item of sectorIndices) {
+        for (const item of sectorsToDraw) {
           const s = item.s;
           const sector = floor.sectors[s];
           if (!sector.intact) continue;
@@ -1285,24 +1265,6 @@
           const endAngle = (s + 1) * SECTOR_ANGLE + towerRotation;
 
           drawWedge(centerX, screenY, startAngle, endAngle, sector.type, floor.isFinish, theme);
-        }
-
-        // Draw paint splatters on this floor
-        for (const splat of splatters) {
-          if (splat.floorIndex === i) {
-            const splatAngle = splat.localAngle + towerRotation;
-            // Splatter at mean radius
-            const splatX = centerX + Math.sin(splatAngle) * BALL_MEAN_RADIUS;
-            const splatY = screenY + Math.cos(splatAngle) * BALL_MEAN_RADIUS * TILT;
-
-            ctx.save();
-            ctx.fillStyle = splat.color;
-            ctx.globalAlpha = splat.alpha;
-            ctx.beginPath();
-            ctx.ellipse(splatX, splatY, splat.radius, splat.radius * TILT, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          }
         }
       }
     }
@@ -1323,10 +1285,6 @@
         sideFill = theme.safeDark;
         bevelFill = theme.safeBevel;
       }
-
-      // In our cylindrical coordinate system:
-      // X = centerX + R * sin(angle)
-      // Y = screenY + R * cos(angle) * TILT
 
       // 1. Draw Outer Curved Thickness Side Wall
       ctx.fillStyle = sideFill;
@@ -1394,7 +1352,6 @@
       ctx.scale(ball.scaleX, ball.scaleY);
 
       if (isFireballMode) {
-        // Blazing Fireball
         const fireGrad = ctx.createRadialGradient(-3, -3, 2, 0, 0, BALL_RADIUS * 1.4);
         fireGrad.addColorStop(0, "#fffbeb");
         fireGrad.addColorStop(0.3, "#fde047");
@@ -1409,7 +1366,6 @@
         ctx.fill();
         ctx.shadowBlur = 0;
       } else {
-        // Normal 3D Sphere Ball
         const ballGrad = ctx.createRadialGradient(-BALL_RADIUS * 0.3, -BALL_RADIUS * 0.3, BALL_RADIUS * 0.1, 0, 0, BALL_RADIUS);
         ballGrad.addColorStop(0, "#ffffff");
         ballGrad.addColorStop(0.35, theme.ballColor);
