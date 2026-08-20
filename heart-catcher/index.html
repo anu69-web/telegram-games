@@ -1,29 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Heart Catcher</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Heart Catcher Deluxe</title>
   <script src="https://telegram.org/js/games.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg-gradient: radial-gradient(circle at 50% 30%, #2e1065 0%, #0f0728 55%, #050212 100%);
+      --accent-pink: #f43f5e;
+      --accent-rose: #fb7185;
+      --accent-gold: #fbbf24;
+      --accent-cyan: #38bdf8;
+      --accent-purple: #c084fc;
+      --glass-bg: rgba(26, 16, 51, 0.72);
+      --glass-border: rgba(244, 63, 94, 0.28);
+      --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(244, 63, 94, 0.15);
+    }
+
     * {
       box-sizing: border-box;
       user-select: none;
       -webkit-user-select: none;
+      -webkit-touch-callout: none;
       margin: 0;
       padding: 0;
     }
+
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #0f172a;
+      background: #060212;
+      background-image: var(--bg-gradient);
       touch-action: none;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #ffffff;
     }
+
     #game-container {
       position: relative;
       width: 100vw;
@@ -33,26 +53,330 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      box-shadow: var(--glass-shadow);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #0d0722;
     }
+
     canvas {
       width: 100%;
       height: 100%;
       display: block;
       touch-action: none;
-      background: linear-gradient(180deg, #1e1b4b 0%, #311042 100%);
+    }
+
+    /* Top HUD Controls */
+    .hud-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 10px;
+      z-index: 30;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      background: rgba(30, 18, 58, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.90);
+      background: rgba(244, 63, 94, 0.3);
+    }
+
+    /* UI Glass Panels */
+    .ui-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      background: rgba(8, 4, 20, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: scale(0.96);
+    }
+
+    .ui-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    .glass-card {
+      width: 100%;
+      max-width: 340px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 24px 20px;
+      box-shadow: var(--glass-shadow);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      animation: floatIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes floatIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .title-pill {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fda4af;
+      background: rgba(244, 63, 94, 0.2);
+      padding: 5px 14px;
+      border-radius: 100px;
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      display: inline-block;
+    }
+
+    .game-title {
+      font-size: 28px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #fff 20%, #f472b6 60%, #fb7185 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.15;
+      text-shadow: 0 0 20px rgba(244, 63, 94, 0.4);
+    }
+
+    .reward-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 100%;
+      margin: 4px 0;
+    }
+
+    .reward-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      color: #e2e8f0;
+    }
+
+    .reward-chip .emoji {
+      font-size: 18px;
+    }
+
+    .reward-chip .pts {
+      font-weight: 700;
+      color: var(--accent-gold);
+    }
+
+    .hazard-box {
+      width: 100%;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #fca5a5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 16px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #fff;
+      background: linear-gradient(135deg, #f43f5e 0%, #ec4899 50%, #d946ef 100%);
+      box-shadow: 0 8px 25px rgba(244, 63, 94, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.96);
+      box-shadow: 0 4px 15px rgba(244, 63, 94, 0.35);
+    }
+
+    /* Scoreboard styling */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      gap: 10px;
+    }
+
+    .stat-box {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      margin-bottom: 2px;
+    }
+
+    .stat-val {
+      font-size: 24px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .stat-val.gold {
+      color: var(--accent-gold);
+      text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+    }
+
+    .badge-new-record {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      color: #facc15;
+      background: rgba(250, 204, 21, 0.18);
+      border: 1px solid rgba(250, 204, 21, 0.45);
+      padding: 4px 12px;
+      border-radius: 100px;
+      animation: pulseGlow 1.2s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { box-shadow: 0 0 5px rgba(250, 204, 21, 0.3); }
+      to { box-shadow: 0 0 16px rgba(250, 204, 21, 0.8); }
     }
   </style>
 </head>
 <body>
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
+
+    <!-- Top HUD Buttons -->
+    <div class="hud-controls">
+      <button id="sound-btn" class="icon-btn" onclick="toggleMute()" title="Sound On/Off">🔊</button>
+    </div>
+
+    <!-- Start Overlay Screen -->
+    <div id="start-overlay" class="ui-overlay active">
+      <div class="glass-card">
+        <div class="title-pill">Valentine & Couples Arcade</div>
+        <div class="game-title">💖 Heart Catcher 💖</div>
+        <p style="font-size: 13px; color: #cbd5e1; line-height: 1.4;">
+          Slide the basket to catch romantic treasures & build your combo!
+        </p>
+
+        <div class="reward-grid">
+          <div class="reward-chip"><span class="emoji">💖</span><span>Heart</span><span class="pts">+1 pt</span></div>
+          <div class="reward-chip"><span class="emoji">💌</span><span>Letter</span><span class="pts">+2 pts</span></div>
+          <div class="reward-chip"><span class="emoji">🌹</span><span>Rose</span><span class="pts">+2 pts</span></div>
+          <div class="reward-chip"><span class="emoji">✈️</span><span>Trip</span><span class="pts">+3 pts</span></div>
+          <div class="reward-chip"><span class="emoji">💍</span><span>Ring</span><span class="pts">+5 pts</span></div>
+          <div class="reward-chip"><span class="emoji">👑</span><span>Crown</span><span class="pts">+10 pts</span></div>
+        </div>
+
+        <div class="hazard-box">
+          <span>⚠️ Dodge:</span> <span>⛈️ Storms &nbsp;•&nbsp; 💔 Broken &nbsp;•&nbsp; 💣 Bombs</span>
+        </div>
+
+        <button class="btn-primary" onclick="startGame()">
+          <span>PLAY NOW</span>
+          <span>⚡</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Over Overlay Screen -->
+    <div id="gameover-overlay" class="ui-overlay">
+      <div class="glass-card">
+        <div id="gameover-pill" class="title-pill" style="color: #f87171; background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4);">
+          Round Completed
+        </div>
+
+        <div id="gameover-title" class="game-title" style="font-size: 26px;">💔 Heart Lost!</div>
+
+        <div id="record-container" style="display: none;">
+          <div class="badge-new-record">🏆 NEW ALL-TIME HIGH SCORE! 🏆</div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-box">
+            <span class="stat-label">Score</span>
+            <span id="final-score" class="stat-val">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Max Streak</span>
+            <span id="final-combo" class="stat-val" style="color: #38bdf8;">0x</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Best Record</span>
+            <span id="best-score" class="stat-val gold">0</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="startGame()">
+          <span>PLAY AGAIN</span>
+          <span>🔄</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <script>
+    // =========================================================================
+    // Telegram Session & Canvas Initialization
+    // =========================================================================
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    // Extract Telegram session data
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get("user_id");
     const chatId = urlParams.get("chat_id");
@@ -67,10 +391,10 @@
     function resizeCanvas() {
       const container = document.getElementById("game-container");
       const rect = container.getBoundingClientRect();
+      dpr = Math.min(window.devicePixelRatio || 1, 2.5); // Cap DPR for smooth 120fps
 
-      dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
 
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(canvas.width / LOGICAL_WIDTH, canvas.height / LOGICAL_HEIGHT);
@@ -81,130 +405,356 @@
     window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 150));
     resizeCanvas();
 
+    // =========================================================================
+    // Web Audio Synthesizer Engine (Zero external dependencies)
+    // =========================================================================
+    let isMuted = localStorage.getItem("hc_muted") === "true";
+    const soundBtn = document.getElementById("sound-btn");
+    soundBtn.innerText = isMuted ? "🔇" : "🔊";
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      localStorage.setItem("hc_muted", isMuted ? "true" : "false");
+      soundBtn.innerText = isMuted ? "🔇" : "🔊";
+      if (!isMuted) AudioEngine.init();
+    }
+
+    function triggerHaptic(type) {
+      try {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+          if (type === "catch") window.Telegram.WebApp.HapticFeedback.impactOccurred("light");
+          else if (type === "bonus") window.Telegram.WebApp.HapticFeedback.impactOccurred("medium");
+          else if (type === "bomb") window.Telegram.WebApp.HapticFeedback.notificationOccurred("error");
+          else if (type === "record") window.Telegram.WebApp.HapticFeedback.notificationOccurred("success");
+        } else if (navigator.vibrate) {
+          if (type === "catch") navigator.vibrate(15);
+          else if (type === "bonus") navigator.vibrate([20, 30, 40]);
+          else if (type === "bomb") navigator.vibrate([60, 40, 80]);
+        }
+      } catch (e) {}
+    }
+
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+      },
+      playCatch(comboCount = 1) {
+        if (isMuted) return;
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          const baseFreq = 440; // A4
+          const pitchMultiplier = Math.min(2.2, 1 + (comboCount * 0.08));
+          const targetFreq = baseFreq * pitchMultiplier;
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(targetFreq, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(targetFreq * 1.5, this.ctx.currentTime + 0.08);
+
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.12);
+        } catch (e) {}
+      },
+      playBonus() {
+        if (isMuted) return;
+        try {
+          this.init();
+          const notes = [587.33, 739.99, 880.00, 1174.66]; // D5, F#5, A5, D6
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.value = freq;
+            const start = this.ctx.currentTime + idx * 0.04;
+            gain.gain.setValueAtTime(0.22, start);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + 0.2);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(start);
+            osc.stop(start + 0.2);
+          });
+        } catch (e) {}
+      },
+      playBomb() {
+        if (isMuted) return;
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.35);
+
+          gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.35);
+        } catch (e) {}
+      },
+      playGameOver() {
+        if (isMuted) return;
+        try {
+          this.init();
+          const chords = [440, 392, 349.23, 293.66];
+          chords.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = freq;
+            const t = this.ctx.currentTime + i * 0.1;
+            gain.gain.setValueAtTime(0.22, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.3);
+          });
+        } catch (e) {}
+      },
+      playFanfare() {
+        if (isMuted) return;
+        try {
+          this.init();
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((f, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.value = f;
+            const t = this.ctx.currentTime + i * 0.08;
+            gain.gain.setValueAtTime(0.25, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.4);
+          });
+        } catch (e) {}
+      }
+    };
+
+    // =========================================================================
+    // Game Physics, Entities & Particle FX
+    // =========================================================================
     let score = 0;
     let highscore = parseInt(localStorage.getItem("hc_hi") || "0", 10);
+    let combo = 0;
+    let maxCombo = 0;
+    let isPlaying = false;
     let gameOver = false;
-    let gameStarted = false;
-    let speed = 4.2;
-    let frame = 0;
+    let baseSpeed = 4.2;
+    let screenShake = 0;
+    let flashAlpha = 0;
 
     const player = {
       x: LOGICAL_WIDTH / 2,
-      y: 540,
-      width: 80,
-      height: 34,
-      speed: 9,
-      dx: 0
+      targetX: LOGICAL_WIDTH / 2,
+      y: 545,
+      width: 86,
+      height: 38,
+      scaleX: 1,
+      scaleY: 1,
+      tilt: 0
     };
 
     const GOOD_ITEMS = [
-      { emoji: "💖", pts: 1 },
-      { emoji: "💌", pts: 2 },
-      { emoji: "🌹", pts: 2 },
-      { emoji: "✈️", pts: 3 },
-      { emoji: "💍", pts: 5 },
+      { emoji: "💖", pts: 1, weight: 42, color: "#f43f5e" },
+      { emoji: "💌", pts: 2, weight: 22, color: "#fb7185" },
+      { emoji: "🌹", pts: 2, weight: 20, color: "#e11d48" },
+      { emoji: "✈️", pts: 3, weight: 12, color: "#38bdf8" },
+      { emoji: "💍", pts: 5, weight: 8, color: "#fbbf24" },
+      { emoji: "👑", pts: 10, weight: 4, color: "#f59e0b" },
     ];
-    const BAD_ITEMS = ["⛈️", "💔", "💣"];
-    let items = [];
 
+    const BAD_ITEMS = [
+      { emoji: "⛈️", name: "storm" },
+      { emoji: "💔", name: "heartbreak" },
+      { emoji: "💣", name: "bomb" }
+    ];
+
+    let items = [];
+    let particles = [];
+    let floaters = [];
+    let bgStars = [];
+    let bgHearts = [];
+
+    // Background cosmic starfield generation
+    for (let i = 0; i < 40; i++) {
+      bgStars.push({
+        x: Math.random() * LOGICAL_WIDTH,
+        y: Math.random() * LOGICAL_HEIGHT,
+        size: Math.random() * 2 + 0.8,
+        alpha: Math.random() * 0.7 + 0.2,
+        twinkleSpeed: Math.random() * 2 + 1,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+
+    // Ambient floating hearts in background
+    for (let i = 0; i < 6; i++) {
+      bgHearts.push({
+        x: Math.random() * LOGICAL_WIDTH,
+        y: Math.random() * LOGICAL_HEIGHT,
+        size: Math.random() * 12 + 10,
+        speed: Math.random() * 0.4 + 0.2,
+        alpha: Math.random() * 0.12 + 0.05,
+        wobble: Math.random() * Math.PI * 2
+      });
+    }
+
+    function createParticleExplosion(x, y, color, count = 12, isBonus = false) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * (isBonus ? 5.5 : 3.8) + 1.2;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.2,
+          radius: Math.random() * 3 + 2,
+          color,
+          alpha: 1,
+          decay: Math.random() * 0.025 + 0.02,
+          rotation: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.2,
+          shape: Math.random() < 0.3 ? "heart" : "sparkle"
+        });
+      }
+    }
+
+    function addScoreFloater(x, y, text, color = "#fbbf24", scale = 1) {
+      floaters.push({
+        x,
+        y,
+        text,
+        color,
+        scale,
+        alpha: 1,
+        vy: -2.2
+      });
+    }
+
+    // =========================================================================
+    // Touch, Mouse & Keyboard Input Handlers
+    // =========================================================================
     function getCanvasX(clientX) {
       const rect = canvas.getBoundingClientRect();
       return ((clientX - rect.left) / rect.width) * LOGICAL_WIDTH;
     }
 
-    function setPlayerPosition(clientX) {
-      const targetX = getCanvasX(clientX);
-      player.x = Math.max(player.width / 2, Math.min(LOGICAL_WIDTH - player.width / 2, targetX));
+    function onPointerMove(clientX) {
+      if (!isPlaying || gameOver) return;
+      const target = getCanvasX(clientX);
+      player.targetX = Math.max(player.width / 2, Math.min(LOGICAL_WIDTH - player.width / 2, target));
     }
 
     canvas.addEventListener("touchstart", (e) => {
       e.preventDefault();
-      if (!gameStarted || gameOver) {
-        resetGame();
-        return;
-      }
-      if (e.touches.length > 0) setPlayerPosition(e.touches[0].clientX);
+      if (e.touches.length > 0) onPointerMove(e.touches[0].clientX);
     }, { passive: false });
 
     canvas.addEventListener("touchmove", (e) => {
       e.preventDefault();
-      if (gameStarted && !gameOver && e.touches.length > 0) {
-        setPlayerPosition(e.touches[0].clientX);
-      }
+      if (e.touches.length > 0) onPointerMove(e.touches[0].clientX);
     }, { passive: false });
 
     let isMouseDown = false;
     canvas.addEventListener("mousedown", (e) => {
-      if (!gameStarted || gameOver) {
-        resetGame();
-        return;
-      }
       isMouseDown = true;
-      setPlayerPosition(e.clientX);
+      onPointerMove(e.clientX);
     });
 
     window.addEventListener("mousemove", (e) => {
-      if (gameStarted && !gameOver && isMouseDown) setPlayerPosition(e.clientX);
+      if (isMouseDown) onPointerMove(e.clientX);
     });
 
     window.addEventListener("mouseup", () => { isMouseDown = false; });
 
+    // Keyboard support for desktop testing
+    const keys = {};
+    window.addEventListener("keydown", (e) => {
+      keys[e.key] = true;
+      if (e.key === " " && !isPlaying) startGame();
+    });
+    window.addEventListener("keyup", (e) => { keys[e.key] = false; });
+
+    // =========================================================================
+    // Spawning & Difficulty Logic
+    // =========================================================================
+    let spawnTimer = 0;
+
+    function pickRandomGoodItem() {
+      const totalWeight = GOOD_ITEMS.reduce((sum, it) => sum + it.weight, 0);
+      let rand = Math.random() * totalWeight;
+      for (const it of GOOD_ITEMS) {
+        if (rand < it.weight) return it;
+        rand -= it.weight;
+      }
+      return GOOD_ITEMS[0];
+    }
+
     function spawnItem() {
-      const isBad = Math.random() < 0.28;
-      const selected = isBad
-        ? { emoji: BAD_ITEMS[Math.floor(Math.random() * BAD_ITEMS.length)], pts: 0, isBad: true }
-        : { ...GOOD_ITEMS[Math.floor(Math.random() * GOOD_ITEMS.length)], isBad: false };
+      // Bad item spawn probability ramps up moderately with score
+      const badChance = Math.min(0.38, 0.22 + score * 0.002);
+      const isBad = Math.random() < badChance;
+
+      let itemData;
+      if (isBad) {
+        const bad = BAD_ITEMS[Math.floor(Math.random() * BAD_ITEMS.length)];
+        itemData = {
+          emoji: bad.emoji,
+          isBad: true,
+          pts: 0,
+          color: "#f87171"
+        };
+      } else {
+        const good = pickRandomGoodItem();
+        itemData = {
+          emoji: good.emoji,
+          isBad: false,
+          pts: good.pts,
+          color: good.color
+        };
+      }
+
+      const fallSpeed = baseSpeed + (Math.random() * 1.6) + Math.min(4.5, score * 0.04);
 
       items.push({
-        x: Math.random() * (LOGICAL_WIDTH - 60) + 30,
-        y: -30,
+        x: Math.random() * (LOGICAL_WIDTH - 70) + 35,
+        y: -35,
         size: 32,
-        isBad: selected.isBad,
-        emoji: selected.emoji,
-        pts: selected.pts,
-        vy: speed + Math.random() * 1.5
+        isBad: itemData.isBad,
+        emoji: itemData.emoji,
+        pts: itemData.pts,
+        color: itemData.color,
+        vy: fallSpeed,
+        wobblePhase: Math.random() * Math.PI * 2,
+        wobbleSpeed: Math.random() * 3 + 2,
+        wobbleAmp: itemData.isBad ? 12 : 6,
+        rotation: 0
       });
     }
 
-    function update() {
-      if (!gameStarted || gameOver) return;
-
-      frame++;
-      if (frame % Math.max(20, Math.floor(52 - score * 0.35)) === 0) {
-        spawnItem();
-      }
-
-      player.x += player.dx;
-      player.x = Math.max(player.width / 2, Math.min(LOGICAL_WIDTH - player.width / 2, player.x));
-
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        item.y += item.vy;
-
-        const hitX = Math.abs(item.x - player.x) < (player.width / 2 + 14);
-        const hitY = item.y >= player.y - 12 && item.y <= player.y + player.height;
-
-        if (hitX && hitY) {
-          if (item.isBad) {
-            endGame();
-            return;
-          } else {
-            score += item.pts;
-            speed += 0.035;
-            items.splice(i, 1);
-            i--;
-            continue;
-          }
-        }
-
-        if (item.y > LOGICAL_HEIGHT + 40) {
-          items.splice(i, 1);
-          i--;
-        }
-      }
-    }
-
-    // Automatically sync score to Telegram's native chat card
+    // =========================================================================
+    // Telegram Game Score Submission
+    // =========================================================================
     async function syncTelegramScore(finalScore) {
       if (!botToken || !userId || finalScore <= 0) return;
       const targetIdNum = parseInt(userId, 10);
@@ -239,127 +789,475 @@
           body: JSON.stringify(body)
         });
       } catch (err) {
-        console.warn("Score sync error:", err);
+        console.warn("Score sync warning:", err);
       }
     }
 
-    function endGame() {
+    // =========================================================================
+    // Game Lifecycle Management
+    // =========================================================================
+    function startGame() {
+      AudioEngine.init();
+      score = 0;
+      combo = 0;
+      maxCombo = 0;
+      baseSpeed = 4.2;
+      items = [];
+      particles = [];
+      floaters = [];
+      player.x = LOGICAL_WIDTH / 2;
+      player.targetX = LOGICAL_WIDTH / 2;
+      player.tilt = 0;
+      player.scaleX = 1;
+      player.scaleY = 1;
+      spawnTimer = 0;
+
+      gameOver = false;
+      isPlaying = true;
+
+      document.getElementById("start-overlay").classList.remove("active");
+      document.getElementById("gameover-overlay").classList.remove("active");
+      document.getElementById("record-container").style.display = "none";
+    }
+
+    function endGame(hazardEmoji) {
+      if (gameOver) return;
       gameOver = true;
-      if (score > highscore) {
+      isPlaying = false;
+
+      screenShake = 16;
+      flashAlpha = 0.6;
+      AudioEngine.playBomb();
+      triggerHaptic("bomb");
+
+      createParticleExplosion(player.x, player.y + 15, "#ef4444", 28, true);
+
+      const isNewBest = score > highscore;
+      if (isNewBest) {
         highscore = score;
         localStorage.setItem("hc_hi", highscore);
+        setTimeout(() => {
+          AudioEngine.playFanfare();
+          triggerHaptic("record");
+        }, 350);
+      } else {
+        setTimeout(() => {
+          AudioEngine.playGameOver();
+        }, 300);
       }
 
-      // Auto-submit score to Telegram card
+      // Sync to Telegram
       syncTelegramScore(score);
-
       try {
         if (window.TelegramGameProxy && typeof window.TelegramGameProxy.setScore === "function") {
           window.TelegramGameProxy.setScore(score);
         }
       } catch (e) {}
+
+      // Populate Game Over Overlay
+      document.getElementById("final-score").innerText = score;
+      document.getElementById("final-combo").innerText = `${maxCombo}x`;
+      document.getElementById("best-score").innerText = highscore;
+
+      if (isNewBest && score > 0) {
+        document.getElementById("record-container").style.display = "block";
+        document.getElementById("gameover-title").innerText = "👑 NEW RECORD!";
+        document.getElementById("gameover-pill").innerText = "GLORIOUS RUN";
+        document.getElementById("gameover-pill").style.color = "#facc15";
+        document.getElementById("gameover-pill").style.background = "rgba(250, 204, 21, 0.2)";
+        document.getElementById("gameover-pill").style.borderColor = "rgba(250, 204, 21, 0.4)";
+      } else {
+        document.getElementById("record-container").style.display = "none";
+        document.getElementById("gameover-title").innerText = hazardEmoji === "💣" ? "💥 Boom! Game Over" : "💔 Heart Lost!";
+        document.getElementById("gameover-pill").innerText = "ROUND FINISHED";
+        document.getElementById("gameover-pill").style.color = "#f87171";
+        document.getElementById("gameover-pill").style.background = "rgba(239, 68, 68, 0.2)";
+        document.getElementById("gameover-pill").style.borderColor = "rgba(239, 68, 68, 0.4)";
+      }
+
+      setTimeout(() => {
+        document.getElementById("gameover-overlay").classList.add("active");
+      }, 400);
     }
 
-    function resetGame() {
-      score = 0;
-      speed = 4.2;
-      items = [];
-      player.x = LOGICAL_WIDTH / 2;
-      player.dx = 0;
-      gameOver = false;
-      gameStarted = true;
+    // =========================================================================
+    // Delta-Time Physics & Animation Loop (Buttery smooth 60/120 FPS)
+    // =========================================================================
+    let lastTime = performance.now();
+
+    function update(dt) {
+      // Screen shake decay
+      if (screenShake > 0) {
+        screenShake = Math.max(0, screenShake - 35 * dt);
+      }
+      if (flashAlpha > 0) {
+        flashAlpha = Math.max(0, flashAlpha - 1.8 * dt);
+      }
+
+      // Background floating hearts update
+      for (const h of bgHearts) {
+        h.y -= h.speed * 60 * dt;
+        h.wobble += 2 * dt;
+        if (h.y < -30) {
+          h.y = LOGICAL_HEIGHT + 30;
+          h.x = Math.random() * LOGICAL_WIDTH;
+        }
+      }
+
+      if (!isPlaying || gameOver) {
+        // Subtle idle wobble
+        player.scaleX += (1 - player.scaleX) * 0.1;
+        player.scaleY += (1 - player.scaleY) * 0.1;
+        return;
+      }
+
+      // Keyboard arrow steering
+      if (keys["ArrowLeft"] || keys["a"] || keys["A"]) {
+        player.targetX -= 480 * dt;
+      }
+      if (keys["ArrowRight"] || keys["d"] || keys["D"]) {
+        player.targetX += 480 * dt;
+      }
+      player.targetX = Math.max(player.width / 2, Math.min(LOGICAL_WIDTH - player.width / 2, player.targetX));
+
+      // Silky smooth exponential lerp damping
+      const prevX = player.x;
+      const lerpSpeed = 22; // Responsive damping
+      player.x += (player.targetX - player.x) * (1 - Math.exp(-lerpSpeed * dt));
+
+      const dx = player.x - prevX;
+      player.tilt = (dx / (dt * 60)) * 0.035;
+      player.tilt = Math.max(-0.28, Math.min(0.28, player.tilt));
+
+      // Basket bounce spring recovery
+      player.scaleX += (1 - player.scaleX) * 10 * dt;
+      player.scaleY += (1 - player.scaleY) * 10 * dt;
+
+      // Basket trail sparkles when moving rapidly
+      if (Math.abs(dx) > 1.2 && Math.random() < 0.4) {
+        particles.push({
+          x: player.x + (Math.random() - 0.5) * (player.width * 0.6),
+          y: player.y + player.height - 2,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: Math.random() * 1.5 + 0.5,
+          radius: Math.random() * 2 + 1,
+          color: "rgba(244, 63, 94, 0.6)",
+          alpha: 0.8,
+          decay: 0.05,
+          rotation: 0,
+          vRot: 0,
+          shape: "sparkle"
+        });
+      }
+
+      // Spawning with dynamic cadence
+      spawnTimer += dt;
+      const spawnInterval = Math.max(0.42, 0.95 - (score * 0.007));
+      if (spawnTimer >= spawnInterval) {
+        spawnTimer = 0;
+        spawnItem();
+      }
+
+      // Update falling items
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        it.y += it.vy * 60 * dt;
+        it.wobblePhase += it.wobbleSpeed * dt;
+        it.rotation = Math.sin(it.wobblePhase) * 0.12;
+
+        const currentX = it.x + Math.sin(it.wobblePhase) * it.wobbleAmp;
+
+        // Bounding box collision
+        const hitX = Math.abs(currentX - player.x) < (player.width / 2 + 16);
+        const hitY = it.y >= (player.y - 15) && it.y <= (player.y + player.height * 0.85);
+
+        if (hitX && hitY) {
+          if (it.isBad) {
+            endGame(it.emoji);
+            return;
+          } else {
+            // Good item caught!
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+
+            const comboBonus = Math.floor((combo - 1) / 5);
+            const totalEarned = it.pts + comboBonus;
+            score += totalEarned;
+
+            // Basket squash & stretch
+            player.scaleX = 1.22;
+            player.scaleY = 0.82;
+
+            // Audio & Haptics
+            if (it.pts >= 5) {
+              AudioEngine.playBonus();
+              triggerHaptic("bonus");
+            } else {
+              AudioEngine.playCatch(combo);
+              triggerHaptic("catch");
+            }
+
+            // Floater text & particles
+            const floaterText = combo > 2 ? `+${totalEarned} 🔥x${combo}` : `+${totalEarned}`;
+            addScoreFloater(currentX, player.y - 18, floaterText, it.color, it.pts >= 5 ? 1.3 : 1);
+            createParticleExplosion(currentX, player.y + 6, it.color, it.pts >= 5 ? 20 : 12, it.pts >= 5);
+
+            items.splice(i, 1);
+            i--;
+            continue;
+          }
+        }
+
+        // Missed item falling off bottom
+        if (it.y > LOGICAL_HEIGHT + 45) {
+          if (!it.isBad && combo > 0) {
+            combo = 0; // Combo breaks on missed good items
+          }
+          items.splice(i, 1);
+          i--;
+        }
+      }
+
+      // Update particles
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx * 60 * dt;
+        p.y += p.vy * 60 * dt;
+        p.vy += 4.5 * dt; // gravity
+        p.alpha -= p.decay * 60 * dt;
+        p.rotation += p.vRot;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          i--;
+        }
+      }
+
+      // Update score floaters
+      for (let i = 0; i < floaters.length; i++) {
+        const f = floaters[i];
+        f.y += f.vy * 60 * dt;
+        f.alpha -= 1.3 * dt;
+
+        if (f.alpha <= 0) {
+          floaters.splice(i, 1);
+          i--;
+        }
+      }
     }
 
+    // =========================================================================
+    // Canvas Drawing Routine
+    // =========================================================================
     function draw() {
+      ctx.save();
+
+      // Screen Shake offset
+      if (screenShake > 0) {
+        const shakeX = (Math.random() - 0.5) * screenShake;
+        const shakeY = (Math.random() - 0.5) * screenShake;
+        ctx.translate(shakeX, shakeY);
+      }
+
       ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-      // Starfield
-      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.fillRect(40, 70, 2, 2);
-      ctx.fillRect(310, 110, 3, 3);
-      ctx.fillRect(180, 220, 2, 2);
-      ctx.fillRect(70, 390, 2, 2);
-      ctx.fillRect(290, 480, 2, 2);
+      // Deep space atmospheric background
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
+      bgGrad.addColorStop(0, "#1a0833");
+      bgGrad.addColorStop(0.45, "#100624");
+      bgGrad.addColorStop(1, "#070214");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-      // Basket
-      ctx.fillStyle = "#ec4899";
-      ctx.beginPath();
-      ctx.roundRect(player.x - player.width / 2, player.y, player.width, player.height, 12);
-      ctx.fill();
+      // Ambient glowing nebula circles
+      const glowGrad = ctx.createRadialGradient(LOGICAL_WIDTH / 2, 200, 10, LOGICAL_WIDTH / 2, 200, 260);
+      glowGrad.addColorStop(0, "rgba(244, 63, 94, 0.12)");
+      glowGrad.addColorStop(0.6, "rgba(192, 132, 252, 0.05)");
+      glowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-      ctx.font = "22px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("🧺", player.x, player.y + 17);
+      // Twinkling Stars
+      const nowSec = performance.now() / 1000;
+      for (const s of bgStars) {
+        const twinkle = (Math.sin(nowSec * s.twinkleSpeed + s.phase) + 1) * 0.5;
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha * (0.4 + 0.6 * twinkle)})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      // Items
-      for (const item of items) {
-        ctx.font = `${item.size}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      // Parallax Floating Background Hearts
+      for (const h of bgHearts) {
+        ctx.save();
+        ctx.font = `${h.size}px sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(item.emoji, item.x, item.y);
+        ctx.globalAlpha = h.alpha;
+        ctx.fillText("💖", h.x + Math.sin(h.wobble) * 8, h.y);
+        ctx.restore();
       }
 
-      // HUD
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(`✨ Score: ${score}`, 20, 36);
+      // Basket (Player)
+      ctx.save();
+      ctx.translate(player.x, player.y + player.height / 2);
+      ctx.rotate(player.tilt);
+      ctx.scale(player.scaleX, player.scaleY);
 
-      ctx.textAlign = "right";
-      ctx.font = "16px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.fillStyle = "#f472b6";
-      ctx.fillText(`👑 Best: ${highscore}`, LOGICAL_WIDTH - 20, 36);
+      const bWidth = player.width;
+      const bHeight = player.height;
 
-      // Start Screen
-      if (!gameStarted) {
-        ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
-        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+      // Soft ambient underglow
+      const underGlow = ctx.createRadialGradient(0, bHeight / 2, 5, 0, bHeight / 2, 45);
+      underGlow.addColorStop(0, "rgba(244, 63, 94, 0.45)");
+      underGlow.addColorStop(1, "rgba(244, 63, 94, 0)");
+      ctx.fillStyle = underGlow;
+      ctx.fillRect(-bWidth, 0, bWidth * 2, bHeight * 2);
 
-        ctx.fillStyle = "#f43f5e";
-        ctx.font = "bold 32px sans-serif";
+      // Basket body (Polished Glowing Glass-Neon Capsule)
+      const basketGrad = ctx.createLinearGradient(-bWidth / 2, -bHeight / 2, bWidth / 2, bHeight / 2);
+      basketGrad.addColorStop(0, "#f43f5e");
+      basketGrad.addColorStop(0.5, "#ec4899");
+      basketGrad.addColorStop(1, "#d946ef");
+
+      ctx.beginPath();
+      ctx.roundRect(-bWidth / 2, -bHeight / 2, bWidth, bHeight, 16);
+      ctx.fillStyle = basketGrad;
+      ctx.shadowColor = "rgba(244, 63, 94, 0.6)";
+      ctx.shadowBlur = 14;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Rim Highlight
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Basket Emblems
+      ctx.font = "20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🧺", 0, 1);
+
+      ctx.restore();
+
+      // Falling Items
+      for (const it of items) {
+        ctx.save();
+        const currentX = it.x + Math.sin(it.wobblePhase) * it.wobbleAmp;
+        ctx.translate(currentX, it.y);
+        ctx.rotate(it.rotation);
+
+        // Ambient halo behind items
+        if (!it.isBad) {
+          const itemGlow = ctx.createRadialGradient(0, 0, 4, 0, 0, 22);
+          itemGlow.addColorStop(0, "rgba(255, 255, 255, 0.35)");
+          itemGlow.addColorStop(1, "rgba(244, 63, 94, 0)");
+          ctx.fillStyle = itemGlow;
+          ctx.beginPath();
+          ctx.arc(0, 0, 22, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.font = `${it.size}px -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText("💖 Heart Catcher 💖", LOGICAL_WIDTH / 2, 230);
+        ctx.textBaseline = "middle";
+        ctx.fillText(it.emoji, 0, 0);
 
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "15px sans-serif";
-        ctx.fillText("Catch 💖 (+1), 💌 (+2), ✈️ (+3), 💍 (+5)!", LOGICAL_WIDTH / 2, 275);
-        ctx.fillText("Dodge clouds ⛈️ and bombs 💣", LOGICAL_WIDTH / 2, 305);
-
-        ctx.fillStyle = "#38bdf8";
-        ctx.font = "bold 20px sans-serif";
-        ctx.fillText("👉 Tap Screen to Play 👈", LOGICAL_WIDTH / 2, 390);
+        ctx.restore();
       }
 
-      // Game Over Screen
-      if (gameOver) {
-        ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
-        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+      // Particle Bursts
+      for (const p of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
 
-        ctx.fillStyle = "#f43f5e";
-        ctx.font = "bold 34px sans-serif";
+        if (p.shape === "heart") {
+          ctx.font = `${p.radius * 2.8}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("💖", 0, 0);
+        } else {
+          // Diamond / Star Sparkle
+          ctx.beginPath();
+          ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // Floating Score Numbers
+      for (const f of floaters) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, f.alpha);
+        ctx.font = `bold ${Math.round(18 * f.scale)}px 'Outfit', sans-serif`;
+        ctx.fillStyle = f.color;
         ctx.textAlign = "center";
-        ctx.fillText("💔 Game Over!", LOGICAL_WIDTH / 2, 230);
-
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "24px sans-serif";
-        ctx.fillText(`Score: ${score}`, LOGICAL_WIDTH / 2, 280);
-        ctx.fillStyle = "#fbbf24";
-        ctx.font = "18px sans-serif";
-        ctx.fillText(`All-Time Best: ${highscore}`, LOGICAL_WIDTH / 2, 315);
-
-        ctx.fillStyle = "#38bdf8";
-        ctx.font = "bold 20px sans-serif";
-        ctx.fillText("👉 Tap to Play Again 👈", LOGICAL_WIDTH / 2, 400);
+        ctx.textBaseline = "middle";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+        ctx.shadowBlur = 8;
+        ctx.fillText(f.text, f.x, f.y);
+        ctx.restore();
       }
 
-      requestAnimationFrame(() => {
-        update();
-        draw();
-      });
+      // In-Game Live HUD (Top Bar)
+      if (isPlaying) {
+        // Score Display
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 24px 'Outfit', sans-serif";
+        ctx.textAlign = "left";
+        ctx.shadowColor = "rgba(244, 63, 94, 0.4)";
+        ctx.shadowBlur = 10;
+        ctx.fillText(`✨ ${score}`, 20, 42);
+        ctx.shadowBlur = 0;
+
+        // Best Score Ticker
+        ctx.font = "700 13px 'Outfit', sans-serif";
+        ctx.fillStyle = "#fb7185";
+        ctx.fillText(`BEST: ${Math.max(score, highscore)}`, 22, 62);
+
+        // Combo Streak Indicator
+        if (combo >= 2) {
+          ctx.save();
+          const comboScale = 1 + Math.min(0.2, (combo % 5) * 0.04);
+          ctx.translate(LOGICAL_WIDTH / 2, 42);
+          ctx.scale(comboScale, comboScale);
+          ctx.font = "800 15px 'Outfit', sans-serif";
+          ctx.fillStyle = "#facc15";
+          ctx.textAlign = "center";
+          ctx.shadowColor = "rgba(250, 204, 21, 0.6)";
+          ctx.shadowBlur = 12;
+          ctx.fillText(`🔥 STREAK ${combo}x`, 0, 0);
+          ctx.restore();
+        }
+      }
+
+      // Red Flash vignette when hit
+      if (flashAlpha > 0) {
+        ctx.fillStyle = `rgba(239, 68, 68, ${flashAlpha})`;
+        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+      }
+
+      ctx.restore();
     }
 
-    draw();
+    // =========================================================================
+    // Main Game Loop Engine
+    // =========================================================================
+    function gameLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.06); // Cap dt to avoid teleportation
+      lastTime = now;
+
+      update(dt);
+      draw();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    requestAnimationFrame(gameLoop);
   </script>
 </body>
 </html>
