@@ -179,9 +179,9 @@
     }
 
     .reward-chip {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
       padding: 8px 4px;
       display: flex;
       flex-direction: column;
@@ -191,8 +191,16 @@
       color: #e2e8f0;
     }
 
-    .reward-chip .emoji {
-      font-size: 18px;
+    .reward-chip .emoji-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
     }
 
     .reward-chip .pts {
@@ -209,10 +217,10 @@
     }
 
     .hazard-chip {
-      background: rgba(239, 68, 68, 0.08);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      border-radius: 12px;
-      padding: 7px 4px;
+      background: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.38);
+      border-radius: 14px;
+      padding: 8px 4px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -221,16 +229,26 @@
       color: #fca5a5;
     }
 
-    .hazard-chip .emoji {
-      font-size: 18px;
+    .hazard-chip .emoji-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
     }
 
     .hazard-chip .danger {
       font-weight: 800;
       font-size: 9px;
       letter-spacing: 0.5px;
-      color: #f87171;
-      background: rgba(239, 68, 68, 0.2);
+      color: #ffffff;
+      background: #ef4444;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
       padding: 1px 6px;
       border-radius: 6px;
     }
@@ -337,18 +355,18 @@
         </p>
 
         <div class="reward-grid">
-          <div class="reward-chip"><span class="emoji">💖</span><span>Heart</span><span class="pts">+1 pt</span></div>
-          <div class="reward-chip"><span class="emoji">💌</span><span>Letter</span><span class="pts">+2 pts</span></div>
-          <div class="reward-chip"><span class="emoji">🌹</span><span>Rose</span><span class="pts">+2 pts</span></div>
-          <div class="reward-chip"><span class="emoji">✈️</span><span>Trip</span><span class="pts">+3 pts</span></div>
-          <div class="reward-chip"><span class="emoji">💍</span><span>Ring</span><span class="pts">+5 pts</span></div>
-          <div class="reward-chip"><span class="emoji">👑</span><span>Crown</span><span class="pts">+10 pts</span></div>
+          <div class="reward-chip"><span class="emoji-badge">💖</span><span>Heart</span><span class="pts">+1 pt</span></div>
+          <div class="reward-chip"><span class="emoji-badge">💌</span><span>Letter</span><span class="pts">+2 pts</span></div>
+          <div class="reward-chip"><span class="emoji-badge">🌹</span><span>Rose</span><span class="pts">+2 pts</span></div>
+          <div class="reward-chip"><span class="emoji-badge">✈️</span><span>Trip</span><span class="pts">+3 pts</span></div>
+          <div class="reward-chip"><span class="emoji-badge">💍</span><span>Ring</span><span class="pts">+5 pts</span></div>
+          <div class="reward-chip"><span class="emoji-badge">👑</span><span>Crown</span><span class="pts">+10 pts</span></div>
         </div>
 
         <div class="hazard-grid">
-          <div class="hazard-chip"><span class="emoji">⛈️</span><span>Storm</span><span class="danger">DODGE</span></div>
-          <div class="hazard-chip"><span class="emoji">💔</span><span>Broken</span><span class="danger">DODGE</span></div>
-          <div class="hazard-chip"><span class="emoji">💣</span><span>Bomb</span><span class="danger">DODGE</span></div>
+          <div class="hazard-chip"><span class="emoji-badge">⛈️</span><span>Storm</span><span class="danger">DODGE</span></div>
+          <div class="hazard-chip"><span class="emoji-badge">💔</span><span>Broken</span><span class="danger">DODGE</span></div>
+          <div class="hazard-chip"><span class="emoji-badge">💣</span><span>Bomb</span><span class="danger">DODGE</span></div>
         </div>
 
         <button class="btn-primary" onclick="startGame()">
@@ -1172,24 +1190,49 @@
         ctx.translate(currentX, it.y);
         ctx.rotate(it.rotation);
 
-        // Ambient halo / aura behind all items for equal, crisp visibility
-        const haloRadius = 24;
-        const itemGlow = ctx.createRadialGradient(0, 0, 4, 0, 0, haloRadius);
         if (it.isBad) {
-          // Glowing crimson-amber warning halo for hazard items (bomb, broken heart, storm)
-          itemGlow.addColorStop(0, "rgba(255, 255, 255, 0.45)");
-          itemGlow.addColorStop(0.45, "rgba(239, 68, 68, 0.38)");
-          itemGlow.addColorStop(1, "rgba(239, 68, 68, 0)");
+          // Dynamic pulsating danger aura
+          const pulse = (Math.sin(performance.now() * 0.008 + it.wobblePhase) + 1) * 0.5;
+          const outerRadius = 26 + pulse * 4;
+          const outerGlow = ctx.createRadialGradient(0, 0, 4, 0, 0, outerRadius);
+          outerGlow.addColorStop(0, "rgba(239, 68, 68, 0.7)");
+          outerGlow.addColorStop(0.6, "rgba(244, 63, 94, 0.35)");
+          outerGlow.addColorStop(1, "rgba(239, 68, 68, 0)");
+          ctx.fillStyle = outerGlow;
+          ctx.beginPath();
+          ctx.arc(0, 0, outerRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // High-contrast luminous white badge disc (guarantees black bomb & dark clouds pop vividly)
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = "#ef4444";
+          ctx.shadowBlur = 12;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Glowing crimson warning rim
+          ctx.strokeStyle = `rgba(239, 68, 68, ${0.85 + 0.15 * pulse})`;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
         } else {
           // Luminous rose-gold halo for reward items
-          itemGlow.addColorStop(0, "rgba(255, 255, 255, 0.45)");
+          const itemGlow = ctx.createRadialGradient(0, 0, 4, 0, 0, 24);
+          itemGlow.addColorStop(0, "rgba(255, 255, 255, 0.55)");
           itemGlow.addColorStop(0.45, "rgba(244, 63, 94, 0.35)");
           itemGlow.addColorStop(1, "rgba(244, 63, 94, 0)");
+          ctx.fillStyle = itemGlow;
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Soft translucent glass disc for point items
+          ctx.beginPath();
+          ctx.arc(0, 0, 16, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+          ctx.fill();
         }
-        ctx.fillStyle = itemGlow;
-        ctx.beginPath();
-        ctx.arc(0, 0, haloRadius, 0, Math.PI * 2);
-        ctx.fill();
 
         ctx.font = `${it.size}px -apple-system, BlinkMacSystemFont, "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
         ctx.textAlign = "center";
