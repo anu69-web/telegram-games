@@ -178,19 +178,47 @@
     .captured-tray {
       display: flex;
       align-items: center;
-      gap: 1px;
-      font-size: 13px;
-      opacity: 0.88;
-      min-height: 18px;
+      gap: 2px;
+      margin-top: 2px;
+      min-height: 20px;
+      flex-wrap: wrap;
+    }
+    .cap-group {
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 1px 3px;
+      margin-right: 2px;
+    }
+    .cap-mini-svg {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .cap-mini-svg svg {
+      width: 100%;
+      height: 100%;
+    }
+    .cap-count {
+      font-size: 10px;
+      font-weight: 800;
+      color: #cbd5e1;
+      margin-left: 2px;
     }
     .adv-badge {
       font-size: 10px;
-      font-weight: 800;
-      padding: 1px 5px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.14);
+      font-weight: 900;
+      padding: 1px 6px;
+      border-radius: 8px;
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.45);
       color: #38bdf8;
       margin-left: 4px;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
     }
     .turn-pill {
       font-size: 10px;
@@ -1479,32 +1507,87 @@
       return whiteMaterial - blackMaterial; // Positive = White ahead, Negative = Black ahead
     }
 
+    function getCapturedPieces() {
+      const startingCounts = {
+        w: { p: 8, n: 2, b: 2, r: 2, q: 1 },
+        b: { p: 8, n: 2, b: 2, r: 2, q: 1 }
+      };
+
+      const currentCounts = {
+        w: { p: 0, n: 0, b: 0, r: 0, q: 0, k: 0 },
+        b: { p: 0, n: 0, b: 0, r: 0, q: 0, k: 0 }
+      };
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const val = game.board[r][c];
+          if (val) {
+            const color = val[0];
+            const type = val[1].toLowerCase();
+            if (currentCounts[color] && currentCounts[color][type] !== undefined) {
+              currentCounts[color][type]++;
+            }
+          }
+        }
+      }
+
+      const capturedByWhite = [];
+      const capturedByBlack = [];
+      const pieceOrder = ["p", "n", "b", "r", "q"];
+
+      // Black pieces captured by White:
+      for (const type of pieceOrder) {
+        const missing = Math.max(0, startingCounts.b[type] - currentCounts.b[type]);
+        if (missing > 0) {
+          capturedByWhite.push({ code: "b" + type.toUpperCase(), type, count: missing });
+        }
+      }
+
+      // White pieces captured by Black:
+      for (const type of pieceOrder) {
+        const missing = Math.max(0, startingCounts.w[type] - currentCounts.w[type]);
+        if (missing > 0) {
+          capturedByBlack.push({ code: "w" + type.toUpperCase(), type, count: missing });
+        }
+      }
+
+      return { w: capturedByWhite, b: capturedByBlack };
+    }
+
+    function renderCapturedTrayHTML(capturedList, adv) {
+      let html = "";
+      if (capturedList && capturedList.length > 0) {
+        for (const item of capturedList) {
+          const svgContent = PIECE_SVGS[item.code] || "";
+          const countBadge = item.count > 1 ? `<span class="cap-count">×${item.count}</span>` : "";
+          html += `<span class="cap-group"><span class="cap-mini-svg">${svgContent}</span>${countBadge}</span>`;
+        }
+      }
+
+      if (adv > 0) {
+        html += `<span class="adv-badge">+${adv}</span>`;
+      }
+      return html;
+    }
+
     function updateCapturedUI() {
       const adv = calculateAdvantage();
+      const captured = getCapturedPieces();
 
-      // Top player = opponent, Bottom player = you
       const topTray = document.getElementById("top-captured-tray");
       const bottomTray = document.getElementById("bottom-captured-tray");
 
-      const topColor = myColor === "w" ? "b" : "w";
+      const topColor = (myColor === "w" ? "b" : "w");
       const bottomColor = myColor;
-
-      // Pieces captured BY top player = pieces of bottomColor that were captured
-      const topCaptured = capturedPieces[topColor] || [];
-      const bottomCaptured = capturedPieces[bottomColor] || [];
-
-      topTray.innerHTML = topCaptured.map(p => PIECE_EMOJIS[p] || "").join("");
-      bottomTray.innerHTML = bottomCaptured.map(p => PIECE_EMOJIS[p] || "").join("");
 
       const topAdv = (topColor === "w" ? adv : -adv);
       const bottomAdv = (bottomColor === "w" ? adv : -adv);
 
-      if (topAdv > 0) {
-        topTray.innerHTML += `<span class="adv-badge">+${topAdv}</span>`;
-      }
-      if (bottomAdv > 0) {
-        bottomTray.innerHTML += `<span class="adv-badge">+${bottomAdv}</span>`;
-      }
+      const capturedByTop = (topColor === "w" ? captured.w : captured.b);
+      const capturedByBottom = (bottomColor === "w" ? captured.w : captured.b);
+
+      topTray.innerHTML = renderCapturedTrayHTML(capturedByTop, topAdv);
+      bottomTray.innerHTML = renderCapturedTrayHTML(capturedByBottom, bottomAdv);
     }
 
     function updateHistoryUI() {
