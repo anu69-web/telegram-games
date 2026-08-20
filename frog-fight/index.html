@@ -552,26 +552,38 @@
       respawnTimer: 0
     };
 
+    // Allowed Jump Graph: Side pads connect to center pad, start pads connect ONLY to side pads!
+    const ALLOWED_CONNECTIONS = {
+      0: [1, 2],         // Top Start connects only to Upper-Left & Upper-Right
+      1: [0, 3, 4],      // Upper-Left connects to Top Start, Center, and Lower-Left
+      2: [0, 3, 5],      // Upper-Right connects to Top Start, Center, and Lower-Right
+      3: [1, 2, 4, 5],   // Center connects to all 4 side pads (no direct start pad jump)
+      4: [1, 3, 6],      // Lower-Left connects to Upper-Left, Center, and Bottom Start
+      5: [2, 3, 6],      // Lower-Right connects to Upper-Right, Center, and Bottom Start
+      6: [4, 5]          // Bottom Start connects only to Lower-Left & Lower-Right
+    };
+
     function setupLilyPadsAndLanes() {
       if (!width || !height) return;
       const padRadius = Math.min(width * 0.115, 48);
 
+      // Increased rotation speed for snappy, fun timing
       pads = [
-        { id: 0, x: width * 0.50, y: height * 0.12, radius: padRadius, rot: 0.8, speed: 0.022 },
-        { id: 1, x: width * 0.20, y: height * 0.30, radius: padRadius, rot: 2.1, speed: -0.018 },
-        { id: 2, x: width * 0.80, y: height * 0.30, radius: padRadius, rot: 4.5, speed: 0.025 },
-        { id: 3, x: width * 0.50, y: height * 0.50, radius: padRadius, rot: 1.2, speed: -0.020 },
-        { id: 4, x: width * 0.20, y: height * 0.70, radius: padRadius, rot: 3.4, speed: 0.024 },
-        { id: 5, x: width * 0.80, y: height * 0.70, radius: padRadius, rot: 5.6, speed: -0.019 },
-        { id: 6, x: width * 0.50, y: height * 0.88, radius: padRadius, rot: 3.8, speed: 0.021 }
+        { id: 0, x: width * 0.50, y: height * 0.12, radius: padRadius, rot: 0.8, speed: 0.034 },
+        { id: 1, x: width * 0.20, y: height * 0.30, radius: padRadius, rot: 2.1, speed: -0.032 },
+        { id: 2, x: width * 0.80, y: height * 0.30, radius: padRadius, rot: 4.5, speed: 0.036 },
+        { id: 3, x: width * 0.50, y: height * 0.50, radius: padRadius, rot: 1.2, speed: -0.034 },
+        { id: 4, x: width * 0.20, y: height * 0.70, radius: padRadius, rot: 3.4, speed: 0.035 },
+        { id: 5, x: width * 0.80, y: height * 0.70, radius: padRadius, rot: 5.6, speed: -0.033 },
+        { id: 6, x: width * 0.50, y: height * 0.88, radius: padRadius, rot: 3.8, speed: 0.035 }
       ];
 
       // Connected Lanes between adjacent pads (where bugs spawn in between jumping paths!)
       const connections = [
-        [0, 1], [0, 2], [0, 3],
+        [0, 1], [0, 2],
         [1, 3], [2, 3],
         [1, 4], [2, 5],
-        [3, 4], [3, 5], [3, 6],
+        [3, 4], [3, 5],
         [4, 6], [5, 6]
       ];
 
@@ -663,12 +675,13 @@
       frog.jumpStartX = currentPad.x;
       frog.jumpStartY = currentPad.y;
 
-      // Check if facing direction aligns with any other lily pad
+      // Check if facing direction aligns with any allowed connected lily pad
       let matchedPad = null;
       const minAngleThreshold = 0.32; // ~18 degree facing cone
+      const allowedPadIds = new Set(ALLOWED_CONNECTIONS[currentPad.id] || []);
 
       const candidatePads = pads
-        .filter(p => p.id !== currentPad.id)
+        .filter(p => allowedPadIds.has(p.id))
         .map(p => {
           const targetAngle = Math.atan2(p.y - currentPad.y, p.x - currentPad.x);
           let diff = Math.abs((angle - targetAngle + Math.PI * 3) % (Math.PI * 2) - Math.PI);
@@ -685,12 +698,12 @@
       }
 
       if (matchedPad) {
-        // Frog is facing a lily pad -> Leaps and lands EXACTLY centered on it!
+        // Frog is facing a connected lily pad -> Leaps and lands EXACTLY centered on it!
         frog.jumpTargetX = matchedPad.x;
         frog.jumpTargetY = matchedPad.y;
         frog.intendedPadId = matchedPad.id;
       } else {
-        // Frog is NOT facing any lily pad -> Lands in open water!
+        // Frog is NOT facing an allowed lily pad -> Lands in open water!
         const waterJumpDist = Math.min(width * 0.40, 175);
         frog.jumpTargetX = currentPad.x + Math.cos(angle) * waterJumpDist;
         frog.jumpTargetY = currentPad.y + Math.sin(angle) * waterJumpDist;
