@@ -250,6 +250,8 @@
     let pipeSpeed = 2.4;
     let hasShield = false;
     let shieldInvulTimer = 0;
+    let gameOverTime = 0;
+    const RESTART_COOLDOWN_MS = 1500;
 
     const GRAVITY = 0.42;
     const JUMP_STRENGTH = -7.2;
@@ -392,6 +394,7 @@
 
     function triggerGameOver() {
       gameState = "GAMEOVER";
+      gameOverTime = performance.now();
       AudioEngine.playHit();
       setTimeout(() => AudioEngine.playGameOver(), 200);
 
@@ -471,6 +474,9 @@
       } else if (gameState === "PLAYING") {
         bird.flap();
       } else if (gameState === "GAMEOVER") {
+        if (performance.now() - gameOverTime < RESTART_COOLDOWN_MS) {
+          return; // Ignore rapid taps during cooldown to allow score saving
+        }
         resetGame();
       }
     }
@@ -939,9 +945,17 @@
           ctx.fillText("🎉 NEW BEST RECORD! 🎉", LOGICAL_WIDTH / 2, 415);
         }
 
-        ctx.fillStyle = "#38bdf8";
-        ctx.font = "bold 18px sans-serif";
-        ctx.fillText("👉 Tap to Play Again 👈", LOGICAL_WIDTH / 2, 470);
+        const elapsedSinceGameOver = performance.now() - gameOverTime;
+        if (elapsedSinceGameOver < RESTART_COOLDOWN_MS) {
+          const remainingSec = ((RESTART_COOLDOWN_MS - elapsedSinceGameOver) / 1000).toFixed(1);
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = "bold 15px sans-serif";
+          ctx.fillText(`⏳ Saving Score (${remainingSec}s)...`, LOGICAL_WIDTH / 2, 470);
+        } else {
+          ctx.fillStyle = "#38bdf8";
+          ctx.font = "bold 18px sans-serif";
+          ctx.fillText("👉 Tap to Play Again 👈", LOGICAL_WIDTH / 2, 470);
+        }
       }
 
       requestAnimationFrame(() => {
