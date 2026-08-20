@@ -879,13 +879,14 @@
     boardImg.src = "board.jpg";
     let boardLoaded = false;
     boardImg.onload = () => { boardLoaded = true; };
+    if (boardImg.complete) boardLoaded = true;
 
     function getTileCenter(tileNum, roleType = "host") {
       const isP1 = (roleType === "host");
       if (tileNum <= 0) {
         return {
-          x: isP1 ? 20 : 44,
-          y: isP1 ? 576 : 560
+          x: isP1 ? 26 : 42,
+          y: isP1 ? 572 : 556
         };
       }
       const index = tileNum - 1;
@@ -899,8 +900,8 @@
 
       // When both players are on the exact same tile, offset positions clearly
       const isSameTile = (p1Tile === p2Tile);
-      const offsetX = isSameTile ? (isP1 ? -12 : 12) : 0;
-      const offsetY = isSameTile ? (isP1 ? 6 : -6) : 0;
+      const offsetX = isSameTile ? (isP1 ? -10 : 10) : 0;
+      const offsetY = isSameTile ? (isP1 ? 5 : -5) : 0;
 
       return {
         x: baseX + offsetX,
@@ -1354,92 +1355,22 @@
       }
     }
 
-    // =========================================================================
-    // 3D Gem-Cut Token Rendering Engine
-    // =========================================================================
-    function drawRealisticToken(ctx, x, y, hopOffset, roleType, isTurn, tileNum) {
+    function drawPillBadge(ctx, px, py, text, bgColor) {
       ctx.save();
+      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Outfit', sans-serif";
+      const pw = 28;
+      const ph = 16;
+      const r = 8;
+      const left = px - pw / 2;
+      const top = py - ph / 2;
 
-      const isP1 = (roleType === "host");
-      const tokenY = y - hopOffset;
-
-      // 1. Dynamic 3D Drop Shadow on board surface
-      ctx.save();
-      ctx.translate(x, y + 10);
-      ctx.scale(1, 0.42);
       ctx.beginPath();
-      ctx.arc(0, 0, Math.max(8, 20 - hopOffset * 0.4), 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
-      ctx.fill();
-      ctx.restore();
+      ctx.arc(left + r, top + r, r, Math.PI * 0.5, Math.PI * 1.5);
+      ctx.arc(left + pw - r, top + r, r, Math.PI * 1.5, Math.PI * 0.5);
+      ctx.closePath();
 
-      // 2. Active Player Turn Ripple / Breathing Glow
-      if (isTurn) {
-        const pulse = (Math.sin(performance.now() * 0.008) + 1) * 0.5;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(x, tokenY, 26 + pulse * 6, 0, Math.PI * 2);
-        ctx.strokeStyle = isP1 ? `rgba(0, 242, 254, ${0.7 + 0.3 * pulse})` : `rgba(255, 8, 68, ${0.7 + 0.3 * pulse})`;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // 3. Thick White Outer Border (for infinite contrast against any tile color)
-      ctx.beginPath();
-      ctx.arc(x, tokenY, 22, 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = isP1 ? "rgba(0, 242, 254, 0.9)" : "rgba(255, 8, 68, 0.9)";
-      ctx.shadowBlur = 14;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // 4. Vibrant Solid Outer Color Rim
-      ctx.beginPath();
-      ctx.arc(x, tokenY, 19.5, 0, Math.PI * 2);
-      ctx.fillStyle = isP1 ? "#0284c7" : "#be123c";
-      ctx.fill();
-
-      // 5. 3D Gemstone Dome
-      const innerGrad = ctx.createLinearGradient(x, tokenY - 18, x, tokenY + 18);
-      if (isP1) {
-        innerGrad.addColorStop(0, "#e0f2fe");
-        innerGrad.addColorStop(0.35, "#38bdf8");
-        innerGrad.addColorStop(1, "#0284c7");
-      } else {
-        innerGrad.addColorStop(0, "#ffe4e6");
-        innerGrad.addColorStop(0.35, "#fb7185");
-        innerGrad.addColorStop(1, "#e11d48");
-      }
-      ctx.beginPath();
-      ctx.arc(x, tokenY, 17, 0, Math.PI * 2);
-      ctx.fillStyle = innerGrad;
-      ctx.fill();
-
-      // 6. Glass Specular Highlight Curve
-      ctx.beginPath();
-      ctx.ellipse(x, tokenY - 7, 9, 4, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-      ctx.fill();
-
-      // 7. Center Emblem
-      ctx.font = "900 15px 'Outfit', sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-      ctx.shadowBlur = 4;
-      ctx.fillText(isP1 ? "⚡" : "🔥", x, tokenY + 1);
-
-      // 8. Floating Player Badge Tag
-      const label = isP1 ? "P1" : "P2";
-      const tagY = tokenY - 28;
-      const tagW = 28;
-      const tagH = 16;
-      ctx.beginPath();
-      ctx.roundRect(x - tagW / 2, tagY - tagH / 2, tagW, tagH, 8);
-      ctx.fillStyle = isP1 ? "#0369a1" : "#9f1239";
-      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.fillStyle = bgColor;
+      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
       ctx.shadowBlur = 4;
       ctx.fill();
       ctx.strokeStyle = "#ffffff";
@@ -1447,11 +1378,104 @@
       ctx.stroke();
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = "800 10px 'Outfit', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.shadowBlur = 0;
-      ctx.fillText(label, x, tagY);
-
+      ctx.fillText(text, px, py);
       ctx.restore();
+    }
+
+    // =========================================================================
+    // 3D Gem-Cut Token Rendering Engine
+    // =========================================================================
+    function drawRealisticToken(ctx, x, y, hopOffset, roleType, isTurn, tileNum) {
+      try {
+        ctx.save();
+
+        const isP1 = (roleType === "host");
+        const tokenY = y - hopOffset;
+
+        // 1. Dynamic 3D Drop Shadow on board surface
+        ctx.save();
+        ctx.translate(x, y + 10);
+        ctx.scale(1, 0.45);
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(8, 20 - hopOffset * 0.4), 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+        ctx.fill();
+        ctx.restore();
+
+        // 2. Active Player Turn Ripple / Breathing Glow
+        if (isTurn) {
+          const pulse = (Math.sin(performance.now() * 0.008) + 1) * 0.5;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, tokenY, 26 + pulse * 6, 0, Math.PI * 2);
+          ctx.strokeStyle = isP1 ? `rgba(0, 242, 254, ${0.75 + 0.25 * pulse})` : `rgba(255, 8, 68, ${0.75 + 0.25 * pulse})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 3. Thick White Outer Border (for infinite contrast against any tile color)
+        ctx.beginPath();
+        ctx.arc(x, tokenY, 22, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = isP1 ? "rgba(0, 242, 254, 0.9)" : "rgba(255, 8, 68, 0.9)";
+        ctx.shadowBlur = 14;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // 4. Vibrant Solid Outer Color Rim
+        ctx.beginPath();
+        ctx.arc(x, tokenY, 19.5, 0, Math.PI * 2);
+        ctx.fillStyle = isP1 ? "#0284c7" : "#be123c";
+        ctx.fill();
+
+        // 5. 3D Gemstone Dome
+        const innerGrad = ctx.createLinearGradient(x, tokenY - 18, x, tokenY + 18);
+        if (isP1) {
+          innerGrad.addColorStop(0, "#e0f2fe");
+          innerGrad.addColorStop(0.35, "#38bdf8");
+          innerGrad.addColorStop(1, "#0284c7");
+        } else {
+          innerGrad.addColorStop(0, "#ffe4e6");
+          innerGrad.addColorStop(0.35, "#fb7185");
+          innerGrad.addColorStop(1, "#e11d48");
+        }
+        ctx.beginPath();
+        ctx.arc(x, tokenY, 17, 0, Math.PI * 2);
+        ctx.fillStyle = innerGrad;
+        ctx.fill();
+
+        // 6. Glass Specular Highlight (Standard arc with scaling)
+        ctx.save();
+        ctx.translate(x, tokenY - 7);
+        ctx.scale(1, 0.45);
+        ctx.beginPath();
+        ctx.arc(0, 0, 9, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.fill();
+        ctx.restore();
+
+        // 7. Center Emblem
+        ctx.font = "900 15px 'Outfit', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(isP1 ? "⚡" : "🔥", x, tokenY + 1);
+
+        // 8. Floating Player Badge Tag
+        const label = isP1 ? "P1" : "P2";
+        const tagBg = isP1 ? "#0369a1" : "#9f1239";
+        drawPillBadge(ctx, x, tokenY - 28, label, tagBg);
+
+        ctx.restore();
+      } catch (err) {
+        console.error("Token render error:", err);
+      }
     }
 
     // =========================================================================
