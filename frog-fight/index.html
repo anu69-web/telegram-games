@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Frog Fight - Lily Pad Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Frog Fight - 2 Player Duel</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://telegram.org/js/games.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --water-blue: #3ba8f7;
@@ -12,6 +16,8 @@
       --pad-dark: #1b263b;
       --card-bg: rgba(15, 23, 42, 0.85);
       --card-border: rgba(255, 255, 255, 0.2);
+      --blue-frog: #3b82f6;
+      --orange-frog: #f97316;
     }
 
     * {
@@ -28,98 +34,61 @@
       height: 100%;
       overflow: hidden;
       background: #0f172a;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     #game-container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      max-width: 480px;
+      max-width: 440px;
+      max-height: 850px;
       margin: 0 auto;
       overflow: hidden;
       background: #3ba8f7;
       box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+      border-radius: 20px;
     }
 
     canvas {
       width: 100%;
       height: 100%;
       display: block;
+      touch-action: none;
     }
 
-    /* Side Score Pill (like in image) */
+    /* Side Score Pill (Matching image style) */
     .score-side-pill {
       position: absolute;
-      left: -8px;
+      left: -6px;
       top: 50%;
       transform: translateY(-50%);
       background: #ffffff;
       border: 3px solid #1b263b;
       border-radius: 0 24px 24px 0;
-      padding: 8px 14px 8px 18px;
+      padding: 8px 14px 8px 16px;
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 900;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
       z-index: 10;
       pointer-events: none;
     }
     .score-top {
-      color: #3b82f6; /* Blue Frog */
+      color: var(--blue-frog);
     }
     .score-dot {
       color: #94a3b8;
       font-size: 16px;
     }
     .score-bottom {
-      color: #f97316; /* Orange Frog */
-    }
-
-    /* Side Exit Pill */
-    .exit-side-pill {
-      position: absolute;
-      right: -8px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: #ffffff;
-      border: 3px solid #1b263b;
-      border-radius: 24px 0 0 24px;
-      padding: 8px 18px 8px 14px;
-      font-size: 13px;
-      font-weight: 900;
-      color: #1b263b;
-      letter-spacing: 1px;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-      z-index: 10;
-      transition: transform 0.15s ease;
-    }
-    .exit-side-pill:active {
-      transform: translateY(-50%) scale(0.92);
-    }
-
-    /* Top Sound Button */
-    .sound-btn {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: #ffffff;
-      border: 3px solid #1b263b;
-      color: #1b263b;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      z-index: 10;
+      color: var(--orange-frog);
     }
 
     /* Target Goal Badge */
@@ -141,61 +110,74 @@
       z-index: 10;
     }
 
-    /* 2P Touch Control Zones */
-    .touch-zone-top, .touch-zone-bottom {
+    /* Top Controls */
+    .top-controls {
       position: absolute;
-      left: 0;
-      right: 0;
-      height: 50%;
-      z-index: 5;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 8px;
+      z-index: 15;
     }
-    .touch-zone-top {
-      top: 0;
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #1b263b;
+      color: #1b263b;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: transform 0.1s ease;
     }
-    .touch-zone-bottom {
-      bottom: 0;
+    .icon-btn:active {
+      transform: scale(0.92);
     }
 
-    /* Jump Hints */
-    .jump-hint {
+    /* Player Indicator HUD Badge */
+    .player-role-badge {
       position: absolute;
+      bottom: 16px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 12px;
+      background: #ffffff;
+      border: 3px solid #1b263b;
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: 13px;
       font-weight: 900;
-      color: rgba(255, 255, 255, 0.9);
-      background: rgba(27, 38, 59, 0.55);
-      padding: 4px 12px;
-      border-radius: 12px;
+      color: #1b263b;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      z-index: 10;
       pointer-events: none;
-      z-index: 6;
-      animation: bounceHint 1.5s infinite ease-in-out;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      animation: pulseRole 2s infinite ease-in-out;
     }
-    .jump-hint.top {
-      top: 90px;
-    }
-    .jump-hint.bottom {
-      bottom: 90px;
-    }
-
-    @keyframes bounceHint {
-      0%, 100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(-4px); }
+    @keyframes pulseRole {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.04); }
     }
 
-    /* UI Overlays */
+    /* UI Overlays & Modals */
     .ui-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.82);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 24px;
       text-align: center;
-      z-index: 30;
+      z-index: 40;
       animation: fadeIn 0.25s ease;
     }
     .ui-overlay.active {
@@ -234,7 +216,7 @@
     }
 
     .game-title {
-      font-size: 32px;
+      font-size: 30px;
       font-weight: 900;
       letter-spacing: -0.5px;
       background: linear-gradient(135deg, #48cf7f 0%, #38bdf8 50%, #f97316 100%);
@@ -263,24 +245,28 @@
     .btn-action:active {
       transform: scale(0.96);
     }
-    .btn-action.btn-secondary {
-      background: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
-      box-shadow: 0 8px 24px rgba(249, 115, 22, 0.4);
-    }
 
-    .rules-list {
-      text-align: left;
+    .status-box {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 12px;
+      width: 100%;
       font-size: 13px;
       color: #cbd5e1;
-      line-height: 1.6;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 12px 14px;
-      border-radius: 14px;
+      line-height: 1.5;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(56, 189, 248, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -288,80 +274,65 @@
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Side Score Pill -->
+    <!-- Side Score Pill (Top vs Bottom) -->
     <div class="score-side-pill">
       <span class="score-top" id="pill-score-top">0</span>
       <span class="score-dot">•</span>
       <span class="score-bottom" id="pill-score-bottom">0</span>
     </div>
 
-    <!-- Target Goal -->
+    <!-- Goal Badge -->
     <div class="goal-pill">🎯 FIRST TO 10 WINS</div>
 
-    <!-- Exit / Menu Button -->
-    <div class="exit-side-pill" onclick="openMenu()">MENU</div>
+    <!-- Top Controls -->
+    <div class="top-controls">
+      <button class="icon-btn" id="sound-btn" onclick="toggleMute()" title="Toggle Sound">🔊</button>
+    </div>
 
-    <!-- Sound Toggle -->
-    <button class="sound-btn" id="sound-btn" onclick="toggleMute()" title="Toggle Sound">🔊</button>
+    <!-- Bottom Role HUD -->
+    <div class="player-role-badge" id="role-badge">
+      <span id="role-icon">🔵</span>
+      <span id="role-text">Connecting...</span>
+    </div>
 
-    <!-- Jump Helper Hints -->
-    <div class="jump-hint top" id="hint-top" style="display: none;">Tap Top / [W] to Jump</div>
-    <div class="jump-hint bottom" id="hint-bottom">Tap Bottom / [Space] to Jump</div>
-
-    <!-- Touch Control Zones -->
-    <div class="touch-zone-top" id="touch-top"></div>
-    <div class="touch-zone-bottom" id="touch-bottom"></div>
-
-    <!-- Start Overlay -->
-    <div class="ui-overlay active" id="start-overlay">
+    <!-- Connecting / Matchmaking Overlay -->
+    <div class="ui-overlay active" id="connecting-overlay">
       <div class="glass-card">
-        <div class="title-pill">Pond Battle Royale</div>
+        <div class="title-pill">Telegram 2-Player Duel</div>
         <h1 class="game-title">Frog Fight</h1>
         
-        <div class="rules-list">
-          <div>🪷 <b>Lily Pads Rotate:</b> Aim your jump as the pad spins!</div>
-          <div>🪰 <b>Eat Bugs (+1 pt):</b> Catch flies & dragonflies.</div>
-          <div>💥 <b>Knockout (+1 pt):</b> Jump on your opponent's pad!</div>
-          <div>🏆 <b>Goal:</b> First frog to reach <b>10 points</b> wins!</div>
+        <div class="spinner"></div>
+
+        <div class="status-box" id="conn-status-text">
+          Waiting for your partner to join this game card from Telegram...
         </div>
 
-        <button class="btn-action" onclick="startGame('ai')">
-          <span>1 PLAYER VS FROG AI</span>
-          <span>🤖</span>
-        </button>
-
-        <button class="btn-action btn-secondary" onclick="startGame('2p')">
-          <span>2 PLAYERS (LOCAL DUEL)</span>
-          <span>⚔️</span>
-        </button>
+        <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
+          Both players play live in real-time! Tap anywhere on screen to leap from pad to pad. Catch stationary bugs & knock your rival into the water!
+        </p>
       </div>
     </div>
 
     <!-- Victory Overlay -->
     <div class="ui-overlay" id="victory-overlay">
       <div class="glass-card">
-        <div class="title-pill" id="victory-badge">👑 WINNER!</div>
+        <div class="title-pill" id="victory-badge">👑 MATCH WINNER!</div>
         <h2 class="game-title" id="victory-title" style="font-size: 26px;">Blue Frog Wins!</h2>
         
         <div style="font-size: 15px; color: #cbd5e1;" id="victory-stats">Final Score: 10 - 6</div>
 
-        <button class="btn-action" onclick="restartMatch()">
+        <button class="btn-action" onclick="sendRestartRequest()">
           <span>PLAY AGAIN</span>
           <span>🔄</span>
-        </button>
-
-        <button class="btn-action btn-secondary" onclick="openMenu()">
-          <span>CHANGE MODE</span>
-          <span>⚙️</span>
         </button>
       </div>
     </div>
   </div>
 
   <script>
-    // ==========================================
+    // =========================================================================
     // Canvas & Setup
-    // ==========================================
+    // =========================================================================
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     let dpr = window.devicePixelRatio || 1;
@@ -378,15 +349,15 @@
       canvas.height = height * dpr;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
-      setupLilyPads();
+      setupLilyPadsAndLanes();
     }
 
     window.addEventListener("resize", resize);
     window.addEventListener("orientationchange", () => setTimeout(resize, 150));
 
-    // ==========================================
+    // =========================================================================
     // Web Audio Synthesizer Engine
-    // ==========================================
+    // =========================================================================
     let isMuted = false;
     function toggleMute() {
       isMuted = !isMuted;
@@ -429,7 +400,7 @@
           const gain = this.ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(280, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.15);
+          osc.frequency.exponentialRampToValueAtTime(620, this.ctx.currentTime + 0.15);
           gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
           osc.connect(gain);
@@ -515,23 +486,28 @@
       }
     };
 
-    // ==========================================
-    // Game Entities & Parameters
-    // ==========================================
-    let gameMode = "ai"; // 'ai' or '2p'
-    let gameState = "MENU";
+    // =========================================================================
+    // Game Physics, Lily Pads & Stationary Jumping Lanes
+    // =========================================================================
     const TARGET_SCORE = 10;
+    let gameState = "CONNECTING"; // "CONNECTING" | "PLAYING" | "VICTORY"
 
     let pads = [];
-    let bugs = [];
+    let lanes = []; // Midpoints between adjacent lily pads for stationary bugs
+    let stationaryBugs = []; // Array of bugs sitting stationary in jumping lanes!
     let particles = [];
     let popups = [];
     let waterRipples = [];
 
-    // Frog Objects
+    // Local Player & Opponent State
+    let myRole = "host"; // "host" (Top Blue Frog) or "client" (Bottom Orange Frog)
+    let peer = null;
+    let conn = null;
+
     const frogTop = {
       id: "top",
       name: "Blue Frog",
+      role: "host",
       color: "#3b82f6",
       darkColor: "#1d4ed8",
       bellyColor: "#93c5fd",
@@ -549,13 +525,13 @@
       jumpSpeed: 0.038,
       score: 0,
       isRespawning: false,
-      respawnTimer: 0,
-      lastAiDecision: 0
+      respawnTimer: 0
     };
 
     const frogBottom = {
       id: "bottom",
       name: "Orange Frog",
+      role: "client",
       color: "#f97316",
       darkColor: "#c2410c",
       bellyColor: "#fed7aa",
@@ -576,21 +552,10 @@
       respawnTimer: 0
     };
 
-    // ==========================================
-    // Lily Pad Layout Setup
-    // ==========================================
-    function setupLilyPads() {
+    function setupLilyPadsAndLanes() {
       if (!width || !height) return;
       const padRadius = Math.min(width * 0.115, 48);
 
-      // Layout corresponding to user's uploaded reference image:
-      // 0: Top Center
-      // 1: Upper Left
-      // 2: Upper Right
-      // 3: Center
-      // 4: Lower Left
-      // 5: Lower Right
-      // 6: Bottom Center
       pads = [
         { id: 0, x: width * 0.50, y: height * 0.12, radius: padRadius, rot: 0.8, speed: 0.022 },
         { id: 1, x: width * 0.20, y: height * 0.30, radius: padRadius, rot: 2.1, speed: -0.018 },
@@ -601,7 +566,27 @@
         { id: 6, x: width * 0.50, y: height * 0.88, radius: padRadius, rot: 3.8, speed: 0.021 }
       ];
 
-      // Update frog positions if on pads
+      // Connected Lanes between adjacent pads (where bugs spawn in between jumping paths!)
+      const connections = [
+        [0, 1], [0, 2], [0, 3],
+        [1, 3], [2, 3],
+        [1, 4], [2, 5],
+        [3, 4], [3, 5], [3, 6],
+        [4, 6], [5, 6]
+      ];
+
+      lanes = connections.map(([pA, pB], idx) => {
+        const a = pads[pA];
+        const b = pads[pB];
+        return {
+          id: idx,
+          padA: pA,
+          padB: pB,
+          x: (a.x + b.x) / 2,
+          y: (a.y + b.y) / 2
+        };
+      });
+
       if (!frogTop.isJumping) {
         const p = pads[frogTop.padIndex] || pads[0];
         frogTop.x = p.x;
@@ -614,72 +599,75 @@
       }
     }
 
-    // ==========================================
-    // Bug Spawning (Flies & Dragonflies)
-    // ==========================================
+    // =========================================================================
+    // Stationary Bugs Spawning In-Between Jumping Lanes
+    // =========================================================================
     let lastBugSpawn = 0;
-    function maybeSpawnBug() {
+    function maybeSpawnStationaryBug() {
+      // Host manages stationary bug spawning and syncs to client
+      if (myRole !== "host" || gameState !== "PLAYING") return;
+
       const now = performance.now();
-      if (now - lastBugSpawn < 1800 || bugs.length >= 6) return;
+      if (now - lastBugSpawn < 2500 || stationaryBugs.length >= 4) return;
       lastBugSpawn = now;
 
+      // Find an unoccupied jumping lane
+      const occupiedLanes = new Set(stationaryBugs.map(b => b.laneId));
+      const availableLanes = lanes.filter(l => !occupiedLanes.has(l.id));
+      if (availableLanes.length === 0) return;
+
+      const chosenLane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
       const isDragonfly = Math.random() < 0.35;
-      const side = Math.floor(Math.random() * 4); // 0: Top, 1: Right, 2: Bottom, 3: Left
-      let sx, sy, tx, ty;
 
-      if (side === 0) {
-        sx = Math.random() * width; sy = -30;
-        tx = Math.random() * width; ty = height + 30;
-      } else if (side === 1) {
-        sx = width + 30; sy = Math.random() * height;
-        tx = -30; ty = Math.random() * height;
-      } else if (side === 2) {
-        sx = Math.random() * width; sy = height + 30;
-        tx = Math.random() * width; ty = -30;
-      } else {
-        sx = -30; sy = Math.random() * height;
-        tx = width + 30; ty = Math.random() * height;
-      }
-
-      const angle = Math.atan2(ty - sy, tx - sx);
-      const speed = isDragonfly ? (Math.random() * 1.8 + 2.2) : (Math.random() * 1.2 + 1.4);
-
-      bugs.push({
+      const newBug = {
+        id: Math.random().toString(36).substr(2, 9),
+        laneId: chosenLane.id,
         type: isDragonfly ? "dragonfly" : "fly",
-        x: sx,
-        y: sy,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        angle: angle,
+        x: chosenLane.x + (Math.random() - 0.5) * 12,
+        y: chosenLane.y + (Math.random() - 0.5) * 12,
         wingPhase: 0,
         radius: isDragonfly ? 15 : 12,
-        life: 0,
-        wobble: Math.random() * Math.PI * 2
+        angle: (Math.random() - 0.5) * 0.8
+      };
+
+      stationaryBugs.push(newBug);
+      broadcastNetwork({ type: "SPAWN_BUG", bug: newBug });
+    }
+
+    // =========================================================================
+    // Jump Execution & Collision Logic
+    // =========================================================================
+    function triggerJumpLocal() {
+      AudioEngine.init();
+      if (gameState !== "PLAYING") return;
+
+      const myFrog = (myRole === "host") ? frogTop : frogBottom;
+      if (myFrog.isJumping || myFrog.isRespawning) return;
+
+      AudioEngine.playLeap();
+      myFrog.isJumping = true;
+      myFrog.jumpProgress = 0;
+      myFrog.jumpStartX = myFrog.x;
+      myFrog.jumpStartY = myFrog.y;
+
+      const jumpDistance = Math.min(width * 0.75, 340);
+      myFrog.jumpTargetX = myFrog.x + Math.cos(myFrog.angle) * jumpDistance;
+      myFrog.jumpTargetY = myFrog.y + Math.sin(myFrog.angle) * jumpDistance;
+
+      waterRipples.push({ x: myFrog.x, y: myFrog.y, r: 8, maxR: 35, alpha: 0.8 });
+
+      broadcastNetwork({
+        type: "JUMP",
+        role: myRole,
+        angle: myFrog.angle,
+        startX: myFrog.jumpStartX,
+        startY: myFrog.jumpStartY,
+        targetX: myFrog.jumpTargetX,
+        targetY: myFrog.jumpTargetY
       });
     }
 
-    // ==========================================
-    // Jump Action & Collision Logic
-    // ==========================================
-    function triggerJump(frog) {
-      if (gameState !== "PLAYING" || frog.isJumping || frog.isRespawning) return;
-      AudioEngine.playLeap();
-      frog.isJumping = true;
-      frog.jumpProgress = 0;
-      frog.jumpStartX = frog.x;
-      frog.jumpStartY = frog.y;
-
-      // Jump forward in the direction the frog is currently facing
-      const jumpDistance = Math.min(width * 0.75, 340);
-      frog.jumpTargetX = frog.x + Math.cos(frog.angle) * jumpDistance;
-      frog.jumpTargetY = frog.y + Math.sin(frog.angle) * jumpDistance;
-
-      // Add lift ripples
-      waterRipples.push({ x: frog.x, y: frog.y, r: 8, maxR: 35, alpha: 0.8 });
-    }
-
     function checkFrogLanding(frog, opponent) {
-      // Check if landing frog is close to any lily pad
       let landedPad = null;
       for (const pad of pads) {
         const dx = frog.x - pad.x;
@@ -692,7 +680,6 @@
       }
 
       if (landedPad) {
-        // Landed on a pad!
         frog.padIndex = landedPad.id;
         frog.x = landedPad.x;
         frog.y = landedPad.y;
@@ -701,25 +688,21 @@
 
         // Check if opponent is on this exact pad -> KNOCKOUT!
         if (!opponent.isJumping && !opponent.isRespawning && opponent.padIndex === landedPad.id) {
-          // Knockout opponent!
           AudioEngine.playKnockout();
           AudioEngine.playSplash();
           frog.score++;
           updateScoreDisplay();
           addPopup(`+1 KNOCKOUT! 💥`, frog.x, frog.y - 20, frog.color);
 
-          // Opponent splashed into water and respawns
           opponent.isRespawning = true;
           opponent.respawnTimer = 1.0;
           addSplash(opponent.x, opponent.y);
 
-          // Check win
           if (frog.score >= TARGET_SCORE) {
             triggerVictory(frog);
           }
         }
       } else {
-        // Landed in water -> Splash & Penalty respawn!
         frog.isJumping = false;
         frog.isRespawning = true;
         frog.respawnTimer = 1.1;
@@ -762,74 +745,182 @@
       document.getElementById("pill-score-bottom").innerText = frogBottom.score;
     }
 
-    // ==========================================
-    // AI Logic for Top Frog
-    // ==========================================
-    function updateAI() {
-      if (gameMode !== "ai" || gameState !== "PLAYING" || frogTop.isJumping || frogTop.isRespawning) return;
+    // =========================================================================
+    // Telegram Session & PeerJS Multiplayer Networking
+    // =========================================================================
+    const urlParams = new URLSearchParams(window.location.search);
+    const myUserId = urlParams.get("user_id") || "";
+    const chatId = urlParams.get("chat_id") || "";
+    const msgId = urlParams.get("msg_id") || "";
+    const inlineId = urlParams.get("inline_id") || "";
+    const botToken = urlParams.get("token") || "";
 
-      const now = performance.now();
-      if (now - frogTop.lastAiDecision < 150) return;
-      frogTop.lastAiDecision = now;
+    const PEER_CONFIG = {
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun.cloudflare.com:3478" },
+          { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+          { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+          { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+        ]
+      }
+    };
 
-      // Predict trajectory for jumping: check if pointing towards another lily pad or high-value bug
-      const currentPad = pads[frogTop.padIndex];
-      if (!currentPad) return;
+    function getBaseRoomCode() {
+      const seed = inlineId || (chatId + "_" + msgId) || "telegram_frog_duel";
+      let hash = 0;
+      for (let i = 0; i < seed.length; i++) {
+        hash = (hash << 5) - hash + seed.charCodeAt(i);
+        hash |= 0;
+      }
+      return "frog_" + Math.abs(hash).toString(36);
+    }
 
-      const currentAngle = (currentPad.rot % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const hostRoomId = getBaseRoomCode();
 
-      // Check if angle points directly at another pad
-      for (const targetPad of pads) {
-        if (targetPad.id === currentPad.id) continue;
+    function initNetwork() {
+      // 1. Try acting as host
+      peer = new Peer(hostRoomId, PEER_CONFIG);
 
-        const targetAngle = (Math.atan2(targetPad.y - currentPad.y, targetPad.x - currentPad.x) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        let diff = Math.abs(currentAngle - targetAngle);
-        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+      peer.on("open", () => {
+        myRole = "host";
+        updateRoleBadge();
+        document.getElementById("conn-status-text").innerText = "You are Player 1 (Blue Frog)! Waiting for Player 2 to join...";
 
-        // If close alignment, calculate reward:
-        if (diff < 0.22) {
-          // Bonus if opponent is on that pad!
-          if (frogBottom.padIndex === targetPad.id && !frogBottom.isJumping) {
-            triggerJump(frogTop);
-            return;
-          }
+        peer.on("connection", (c) => {
+          conn = c;
+          setupConnectionEvents();
+          onMatchConnected();
+        });
+      });
 
-          // Bonus if a bug is along the path
-          for (const bug of bugs) {
-            const bDist = Math.hypot(bug.x - currentPad.x, bug.y - currentPad.y);
-            const bAngle = (Math.atan2(bug.y - currentPad.y, bug.x - currentPad.x) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-            let bDiff = Math.abs(currentAngle - bAngle);
-            if (bDiff > Math.PI) bDiff = Math.PI * 2 - bDiff;
-            if (bDiff < 0.25 && bDist < 260) {
-              triggerJump(frogTop);
-              return;
-            }
-          }
+      peer.on("error", (err) => {
+        if (err.type === "unavailable-id") {
+          // Room already exists -> Connect as client!
+          peer.destroy();
+          myRole = "client";
+          updateRoleBadge();
+          document.getElementById("conn-status-text").innerText = "Connecting as Player 2 (Orange Frog)...";
 
-          // Random jump opportunism
-          if (Math.random() < 0.45) {
-            triggerJump(frogTop);
-            return;
-          }
+          peer = new Peer(PEER_CONFIG);
+          peer.on("open", () => {
+            conn = peer.connect(hostRoomId, { reliable: true });
+            setupConnectionEvents();
+          });
         }
+      });
+    }
+
+    function setupConnectionEvents() {
+      conn.on("open", () => {
+        onMatchConnected();
+      });
+
+      conn.on("data", (data) => {
+        handleNetworkMessage(data);
+      });
+
+      conn.on("close", () => {
+        document.getElementById("conn-status-text").innerText = "Partner disconnected! Waiting for reconnect...";
+        document.getElementById("connecting-overlay").classList.add("active");
+        gameState = "CONNECTING";
+      });
+    }
+
+    function broadcastNetwork(msg) {
+      if (conn && conn.open) {
+        try {
+          conn.send(msg);
+        } catch (e) {}
       }
     }
 
-    // ==========================================
-    // Telegram Game Score Sync
-    // ==========================================
-    async function syncTelegramScore(finalScore) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get("user_id");
-      const chatId = urlParams.get("chat_id");
-      const msgId = urlParams.get("msg_id");
-      const inlineId = urlParams.get("inline_id");
-      const botToken = urlParams.get("token");
+    function onMatchConnected() {
+      document.getElementById("connecting-overlay").classList.remove("active");
+      document.getElementById("victory-overlay").classList.remove("active");
+      gameState = "PLAYING";
+      AudioEngine.playRibbit(1.0);
+      updateRoleBadge();
+    }
 
-      if (!botToken || !userId) return;
+    function updateRoleBadge() {
+      const badge = document.getElementById("role-badge");
+      const icon = document.getElementById("role-icon");
+      const text = document.getElementById("role-text");
+
+      if (myRole === "host") {
+        icon.innerText = "🔵";
+        text.innerText = "You: Blue Frog (P1)";
+        badge.style.borderColor = "#3b82f6";
+      } else {
+        icon.innerText = "🟠";
+        text.innerText = "You: Orange Frog (P2)";
+        badge.style.borderColor = "#f97316";
+      }
+    }
+
+    function handleNetworkMessage(data) {
+      if (!data) return;
+
+      if (data.type === "JUMP") {
+        const frog = (data.role === "host") ? frogTop : frogBottom;
+        AudioEngine.playLeap();
+        frog.isJumping = true;
+        frog.jumpProgress = 0;
+        frog.angle = data.angle;
+        frog.jumpStartX = data.startX;
+        frog.jumpStartY = data.startY;
+        frog.jumpTargetX = data.targetX;
+        frog.jumpTargetY = data.targetY;
+        waterRipples.push({ x: frog.jumpStartX, y: frog.jumpStartY, r: 8, maxR: 35, alpha: 0.8 });
+      }
+      else if (data.type === "SPAWN_BUG") {
+        stationaryBugs.push(data.bug);
+      }
+      else if (data.type === "EAT_BUG") {
+        const bugIdx = stationaryBugs.findIndex(b => b.id === data.bugId);
+        if (bugIdx !== -1) {
+          const bug = stationaryBugs[bugIdx];
+          AudioEngine.playEat();
+          const frog = (data.role === "host") ? frogTop : frogBottom;
+          frog.score++;
+          updateScoreDisplay();
+          addPopup(`+1 🪰`, bug.x, bug.y, frog.color);
+
+          for (let p = 0; p < 10; p++) {
+            particles.push({
+              x: bug.x, y: bug.y,
+              vx: (Math.random() - 0.5) * 4,
+              vy: (Math.random() - 0.5) * 4,
+              size: Math.random() * 3 + 2,
+              color: "#ffffff",
+              alpha: 1,
+              decay: 0.05
+            });
+          }
+
+          stationaryBugs.splice(bugIdx, 1);
+
+          if (frog.score >= TARGET_SCORE) {
+            triggerVictory(frog);
+          }
+        }
+      }
+      else if (data.type === "RESTART") {
+        restartMatchLocal();
+      }
+    }
+
+    // =========================================================================
+    // Telegram Game Score Sync & Victory
+    // =========================================================================
+    async function syncTelegramScore(finalScore) {
+      if (!botToken || !myUserId) return;
 
       const body = {
-        user_id: parseInt(userId, 10),
+        user_id: parseInt(myUserId, 10),
         score: finalScore,
         force: false
       };
@@ -858,14 +949,10 @@
       } catch (err) {}
     }
 
-    // ==========================================
-    // Victory & Match Management
-    // ==========================================
     function triggerVictory(winner) {
       gameState = "VICTORY";
       AudioEngine.playVictory();
 
-      // Confetti burst
       for (let i = 0; i < 90; i++) {
         const ang = Math.random() * Math.PI * 2;
         const spd = Math.random() * 8 + 3;
@@ -882,7 +969,7 @@
         });
       }
 
-      const loser = winner.id === "top" ? frogBottom : frogTop;
+      const loser = (winner.id === "top") ? frogBottom : frogTop;
       document.getElementById("victory-badge").innerText = `👑 ${winner.name.toUpperCase()} WINS!`;
       document.getElementById("victory-title").innerText = `${winner.name} Reached 10 Points!`;
       document.getElementById("victory-stats").innerText = `Final Score: ${winner.score} - ${loser.score}`;
@@ -891,18 +978,12 @@
       syncTelegramScore(Math.max(frogTop.score, frogBottom.score));
     }
 
-    function startGame(mode) {
-      AudioEngine.init();
-      gameMode = mode;
-      document.getElementById("start-overlay").classList.remove("active");
-      document.getElementById("victory-overlay").classList.remove("active");
-
-      document.getElementById("hint-top").style.display = (mode === "2p") ? "block" : "none";
-
-      restartMatch();
+    function sendRestartRequest() {
+      restartMatchLocal();
+      broadcastNetwork({ type: "RESTART" });
     }
 
-    function restartMatch() {
+    function restartMatchLocal() {
       document.getElementById("victory-overlay").classList.remove("active");
       frogTop.score = 0;
       frogBottom.score = 0;
@@ -916,51 +997,33 @@
       frogBottom.isJumping = false;
       frogBottom.isRespawning = false;
 
-      bugs = [];
+      stationaryBugs = [];
       particles = [];
       popups = [];
       waterRipples = [];
 
-      setupLilyPads();
+      setupLilyPadsAndLanes();
       gameState = "PLAYING";
     }
 
-    function openMenu() {
-      gameState = "MENU";
-      document.getElementById("victory-overlay").classList.remove("active");
-      document.getElementById("start-overlay").classList.add("active");
-    }
-
-    // ==========================================
-    // User Controls (Touch & Keyboard)
-    // ==========================================
-    document.getElementById("touch-bottom").addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      triggerJump(frogBottom);
-    });
-
-    document.getElementById("touch-top").addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      if (gameMode === "2p") {
-        triggerJump(frogTop);
-      } else {
-        triggerJump(frogBottom); // In 1P mode, tapping anywhere triggers player frog
-      }
+    // =========================================================================
+    // User Jump Input (Tap Anywhere or Spacebar)
+    // =========================================================================
+    window.addEventListener("pointerdown", (e) => {
+      // Ignore clicks on buttons
+      if (e.target.closest("button") || e.target.closest(".top-controls")) return;
+      triggerJumpLocal();
     });
 
     window.addEventListener("keydown", (e) => {
-      if (e.code === "Space" || e.code === "ArrowDown" || e.key === "s" || e.key === "S") {
-        triggerJump(frogBottom);
-      }
-      if (e.code === "KeyW" || e.code === "ArrowUp" || e.key === "w" || e.key === "W") {
-        if (gameMode === "2p") triggerJump(frogTop);
-        else triggerJump(frogBottom);
+      if (e.code === "Space" || e.code === "ArrowUp" || e.code === "ArrowDown" || e.key === "w" || e.key === "s") {
+        triggerJumpLocal();
       }
     });
 
-    // ==========================================
-    // Main Game Loop & Physics
-    // ==========================================
+    // =========================================================================
+    // Physics Simulation Loop
+    // =========================================================================
     function update() {
       // 1. Rotate Lily Pads
       for (const pad of pads) {
@@ -968,21 +1031,17 @@
       }
 
       if (gameState === "PLAYING") {
-        maybeSpawnBug();
-        updateAI();
+        maybeSpawnStationaryBug();
       }
 
-      // 2. Update Frog Physics
+      // 2. Update Frogs
       updateFrog(frogTop, frogBottom);
       updateFrog(frogBottom, frogTop);
 
-      // 3. Update Bugs
-      for (let i = bugs.length - 1; i >= 0; i--) {
-        const bug = bugs[i];
-        bug.x += bug.vx;
-        bug.y += bug.vy;
+      // 3. Update Stationary Bugs Flutter & Collision
+      for (let i = stationaryBugs.length - 1; i >= 0; i--) {
+        const bug = stationaryBugs[i];
         bug.wingPhase += 0.45;
-        bug.life++;
 
         // Check if eaten by jumping frog
         [frogTop, frogBottom].forEach(frog => {
@@ -1007,7 +1066,13 @@
                 });
               }
 
-              bugs.splice(i, 1);
+              broadcastNetwork({
+                type: "EAT_BUG",
+                bugId: bug.id,
+                role: frog.role
+              });
+
+              stationaryBugs.splice(i, 1);
 
               if (frog.score >= TARGET_SCORE && gameState === "PLAYING") {
                 triggerVictory(frog);
@@ -1015,11 +1080,6 @@
             }
           }
         });
-
-        // Remove off-screen bugs
-        if (bug.x < -60 || bug.x > width + 60 || bug.y < -60 || bug.y > height + 60) {
-          bugs.splice(i, 1);
-        }
       }
 
       // 4. Update Water Ripples
@@ -1071,7 +1131,6 @@
           checkFrogLanding(frog, opponent);
         }
       } else {
-        // On pad: lock position and rotate with the pad!
         const pad = pads[frog.padIndex];
         if (pad) {
           frog.x = pad.x;
@@ -1081,17 +1140,17 @@
       }
     }
 
-    // ==========================================
-    // Render Functions (Exact Visual Theme)
-    // ==========================================
+    // =========================================================================
+    // Render Functions (Exact Visual Theme Matching User Image)
+    // =========================================================================
     function draw() {
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Draw Water Surface
+      // 1. Water Surface Background
       ctx.fillStyle = "#3ba8f7";
       ctx.fillRect(0, 0, width, height);
 
-      // Subtle water background wave ripples
+      // Water wave ripples
       ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
       ctx.lineWidth = 2;
       for (const rip of waterRipples) {
@@ -1103,21 +1162,21 @@
         ctx.restore();
       }
 
-      // 2. Draw Lily Pads
+      // 2. Lily Pads
       for (const pad of pads) {
         drawLilyPad(pad);
       }
 
-      // 3. Draw Bugs (Flies & Dragonflies)
-      for (const bug of bugs) {
-        drawBug(bug);
+      // 3. Stationary Bugs in Jumping Lanes
+      for (const bug of stationaryBugs) {
+        drawStationaryBug(bug);
       }
 
-      // 4. Draw Frogs
+      // 4. Frogs
       if (!frogTop.isRespawning) drawFrog(frogTop);
       if (!frogBottom.isRespawning) drawFrog(frogBottom);
 
-      // 5. Draw Particles & Popups
+      // 5. Particles & Popups
       drawParticlesAndPopups();
 
       requestAnimationFrame(() => {
@@ -1130,20 +1189,20 @@
       ctx.save();
       ctx.translate(pad.x, pad.y);
 
-      // 1. Drop Shadow
+      // Drop Shadow
       ctx.fillStyle = "rgba(15, 23, 42, 0.35)";
       ctx.beginPath();
       ctx.arc(4, 6, pad.radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // 2. Main Lily Pad Body with Pacman Notch
+      // Main Lily Pad with Pacman notch
       ctx.rotate(pad.rot);
 
       ctx.fillStyle = "#48cf7f";
       ctx.strokeStyle = "#1b263b";
       ctx.lineWidth = 4.5;
 
-      const notchAngle = 0.55; // Pacman slit angle
+      const notchAngle = 0.55;
 
       ctx.beginPath();
       ctx.moveTo(0, 0);
@@ -1152,7 +1211,7 @@
       ctx.fill();
       ctx.stroke();
 
-      // Subtle inner leaf vein lines
+      // Inner vein lines
       ctx.strokeStyle = "rgba(27, 38, 59, 0.25)";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1168,12 +1227,11 @@
     function drawFrog(frog) {
       ctx.save();
       ctx.translate(frog.x, frog.y);
-      ctx.rotate(frog.angle + Math.PI / 2); // Orient forward
+      ctx.rotate(frog.angle + Math.PI / 2);
 
       const scale = frog.isJumping ? (1 + Math.sin(frog.jumpProgress * Math.PI) * 0.35) : 1;
       ctx.scale(scale, scale);
 
-      // Shadow when leaping
       if (frog.isJumping) {
         ctx.save();
         ctx.fillStyle = "rgba(15, 23, 42, 0.25)";
@@ -1186,15 +1244,15 @@
       ctx.lineWidth = 3.5;
       ctx.strokeStyle = "#1b263b";
 
-      // 1. Webbed Feet (Back legs)
+      // 1. Webbed Feet
       drawFrogFoot(-18, 14, -0.6, frog.color);
       drawFrogFoot(18, 14, 0.6, frog.color);
 
-      // 2. Webbed Hands (Front arms)
+      // 2. Webbed Hands
       drawFrogHand(-16, -14, -0.4, frog.color);
       drawFrogHand(16, -14, 0.4, frog.color);
 
-      // 3. Frog Body
+      // 3. Body
       ctx.fillStyle = frog.color;
       ctx.beginPath();
       ctx.ellipse(0, 2, 18, 22, 0, 0, Math.PI * 2);
@@ -1207,7 +1265,7 @@
       ctx.ellipse(0, 4, 11, 14, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // 4. Frog Eyes
+      // 4. Eyes
       // Left Eye
       ctx.fillStyle = frog.color;
       ctx.beginPath();
@@ -1249,7 +1307,6 @@
       ctx.strokeStyle = "#1b263b";
       ctx.lineWidth = 2.5;
 
-      // 3 round fingers
       [-5, 0, 5].forEach(dx => {
         ctx.beginPath();
         ctx.arc(dx, -6, 3, 0, Math.PI * 2);
@@ -1286,7 +1343,7 @@
       ctx.restore();
     }
 
-    function drawBug(bug) {
+    function drawStationaryBug(bug) {
       ctx.save();
       ctx.translate(bug.x, bug.y);
       ctx.rotate(bug.angle);
@@ -1300,12 +1357,11 @@
         ctx.ellipse(0, 0, 16, 4, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 4 Translucent Wings
-        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        // 4 Wings fluttering in place
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
         ctx.strokeStyle = "#1b263b";
         ctx.lineWidth = 1.2;
 
-        // Top Wings
         ctx.beginPath();
         ctx.ellipse(-2, -10 * wingFlap, 11, 4, -0.3, 0, Math.PI * 2);
         ctx.fill();
@@ -1316,7 +1372,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Bottom Wings
         ctx.beginPath();
         ctx.ellipse(-2, 10 * wingFlap, 11, 4, 0.3, 0, Math.PI * 2);
         ctx.fill();
@@ -1327,8 +1382,8 @@
         ctx.fill();
         ctx.stroke();
       } else {
-        // Cartoon Fly: Round black body with white wings
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        // Cartoon Fly hovering in place
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
         ctx.strokeStyle = "#1b263b";
         ctx.lineWidth = 1.5;
 
@@ -1367,7 +1422,7 @@
       for (const pop of popups) {
         ctx.save();
         ctx.globalAlpha = Math.max(0, pop.alpha);
-        ctx.font = "900 16px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.font = "900 16px 'Outfit', sans-serif";
         ctx.fillStyle = pop.color;
         ctx.textAlign = "center";
         ctx.shadowColor = "#0f172a";
@@ -1377,8 +1432,9 @@
       }
     }
 
-    // Initialize
+    // Initialize Game & Network
     resize();
+    initNetwork();
     draw();
   </script>
 </body>
