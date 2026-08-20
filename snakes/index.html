@@ -2,128 +2,299 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Snakes & Ladders Classic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Snakes & Ladders Clash</title>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://telegram.org/js/games.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --p1-color: #00f2fe;
+      --p1-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+      --p1-glow: rgba(56, 189, 248, 0.5);
       --p2-color: #ff0844;
-      --bg-dark: #0b0f19;
-      --card-bg: rgba(255, 255, 255, 0.08);
+      --p2-gradient: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
+      --p2-glow: rgba(244, 63, 94, 0.5);
+      --bg-dark: #070514;
+      --card-bg: rgba(22, 16, 46, 0.78);
+      --card-border: rgba(255, 255, 255, 0.14);
+      --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(99, 102, 241, 0.15);
+      --accent-gold: #fbbf24;
     }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
-    body {
-      background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-dark) 100%);
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 20%, #1e1045 0%, #0c0720 55%, var(--bg-dark) 100%);
+      color: #ffffff;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
       height: 100vh;
+      max-width: 440px;
+      max-height: 850px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px 14px 12px;
+      box-shadow: var(--card-shadow);
+      background: rgba(10, 6, 24, 0.6);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    /* Top HUD Card */
+    #hud {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      gap: 6px;
+      z-index: 20;
+    }
+
+    .player-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .player-card.right {
+      flex-direction: row-reverse;
+      text-align: right;
+    }
+
+    .avatar-token-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 900;
+      color: #fff;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .avatar-p1 {
+      background: var(--p1-gradient);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 14px var(--p1-glow);
+    }
+
+    .avatar-p2 {
+      background: var(--p2-gradient);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 14px var(--p2-glow);
+    }
+
+    .player-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .player-name {
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.2px;
+    }
+
+    .player-tile-pill {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 6px;
+      border-radius: 6px;
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .progress-bar-fill.p1 { background: var(--p1-color); box-shadow: 0 0 6px var(--p1-color); }
+    .progress-bar-fill.p2 { background: var(--p2-color); box-shadow: 0 0 6px var(--p2-color); }
+
+    /* Central Turn / Audio Hub */
+    .hud-center {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      overflow: hidden;
-      padding: 8px 10px;
+      gap: 4px;
+      flex-shrink: 0;
     }
-    #hud {
-      width: 100%;
-      max-width: 420px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 14px;
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 14px;
-    }
-    .player-tag {
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+
     .turn-badge {
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 11px;
+      font-weight: 800;
       padding: 4px 10px;
       border-radius: 20px;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       color: #94a3b8;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all 0.25s ease;
+      white-space: nowrap;
     }
+
     .turn-active {
-      background: #22c55e !important;
-      color: #000 !important;
-      box-shadow: 0 0 12px #22c55e;
+      background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+      color: #ffffff !important;
+      border-color: rgba(255, 255, 255, 0.4) !important;
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.7);
+      animation: turnPulse 1.4s infinite alternate;
+    }
+
+    @keyframes turnPulse {
+      from { transform: scale(0.98); box-shadow: 0 0 10px rgba(34, 197, 94, 0.5); }
+      to { transform: scale(1.03); box-shadow: 0 0 20px rgba(34, 197, 94, 0.9); }
+    }
+
+    .icon-btn-sound {
+      background: none;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      color: #94a3b8;
+      line-height: 1;
+      padding: 2px 4px;
+    }
+
+    /* Board Container */
+    #board-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 390px;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: auto 0;
     }
 
     #board-container {
       position: relative;
-      width: 95vw;
-      max-width: 400px;
-      height: 95vw;
-      max-height: 400px;
+      width: 100%;
+      height: 100%;
       background: url("board.jpg") no-repeat center center;
-      background-size: cover;
-      border: 3px solid #0f172a;
-      border-radius: 14px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      background-size: 100% 100%;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(56, 189, 248, 0.2);
+      overflow: hidden;
     }
+
     canvas {
       width: 100%;
       height: 100%;
       display: block;
       background: transparent;
-      border-radius: 10px;
     }
 
+    /* Bottom Controls & 3D Dice Area */
     #controls-area {
       width: 100%;
-      max-width: 420px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 16px;
+      padding: 10px 14px;
       background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+      gap: 12px;
+      z-index: 20;
     }
+
+    .dice-container-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
     .dice-scene {
       width: 52px;
       height: 52px;
-      perspective: 300px;
-      cursor: pointer;
+      perspective: 320px;
     }
+
     .dice-cube {
       width: 100%;
       height: 100%;
       position: relative;
       transform-style: preserve-3d;
-      transition: transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+      transition: transform 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.25);
     }
+
     .dice-face {
       position: absolute;
       width: 52px;
       height: 52px;
-      background: #ffffff;
+      background: linear-gradient(145deg, #ffffff, #f1f5f9);
       border: 2px solid #cbd5e1;
-      border-radius: 10px;
+      border-radius: 12px;
       display: grid;
       grid-template: repeat(3, 1fr) / repeat(3, 1fr);
       padding: 5px;
-      box-shadow: inset 0 0 6px rgba(0,0,0,0.1);
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), inset 0 -2px 4px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.3);
     }
+
     .dot {
       background: #0f172a;
       border-radius: 50%;
@@ -131,8 +302,15 @@
       justify-self: center;
       width: 9px;
       height: 9px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
     }
-    .dot.red { background: #ef4444; width: 11px; height: 11px; }
+
+    .dot.red {
+      background: #ef4444;
+      width: 12px;
+      height: 12px;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+    }
 
     .face-1 { transform: rotateY(0deg) translateZ(26px); }
     .face-2 { transform: rotateY(-90deg) translateZ(26px); }
@@ -142,111 +320,210 @@
     .face-6 { transform: rotateX(90deg) translateZ(26px); }
 
     .rolling {
-      animation: diceTumble 0.8s ease-in-out infinite;
+      animation: diceTumble 0.75s ease-in-out infinite;
     }
+
     @keyframes diceTumble {
       0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
       50% { transform: rotateX(360deg) rotateY(180deg) rotateZ(180deg); }
       100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
     }
 
-    .status-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: #cbd5e1;
-      line-height: 1.4;
+    .action-info-box {
       flex: 1;
-      margin-left: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
     }
 
+    .action-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.3px;
+    }
+
+    .action-subtitle {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-roll-cta {
+      padding: 9px 14px;
+      border-radius: 12px;
+      border: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+      flex-shrink: 0;
+    }
+
+    .btn-roll-cta.ready {
+      background: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%);
+      color: #041226;
+      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.5);
+      animation: ctaGlow 1.2s infinite alternate;
+    }
+
+    .btn-roll-cta.disabled {
+      background: rgba(255, 255, 255, 0.08);
+      color: #64748b;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    @keyframes ctaGlow {
+      from { transform: scale(0.97); box-shadow: 0 2px 10px rgba(0, 242, 254, 0.4); }
+      to { transform: scale(1.03); box-shadow: 0 6px 20px rgba(0, 242, 254, 0.8); }
+    }
+
+    /* Modals & Overlay */
     #overlay {
       position: fixed;
       inset: 0;
-      background: rgba(11, 15, 25, 0.94);
-      backdrop-filter: blur(10px);
+      background: rgba(8, 5, 22, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 24px;
       text-align: center;
-      gap: 16px;
+      gap: 14px;
       z-index: 50;
     }
-    #overlay h2 {
+
+    .glass-modal {
+      width: 100%;
+      max-width: 340px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 26px 20px;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      animation: modalFloat 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modalFloat {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-title {
       font-size: 26px;
-      font-weight: 800;
-      color: #38bdf8;
-      background: linear-gradient(135deg, #38bdf8 0%, #ef4444 100%);
+      font-weight: 900;
+      background: linear-gradient(135deg, #fff 10%, #38bdf8 60%, #ec4899 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-    }
-    button.btn-replay {
-      padding: 12px 28px;
-      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-weight: 800;
-      cursor: pointer;
-      font-size: 15px;
+      line-height: 1.2;
     }
 
+    .modal-desc {
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    button.btn-replay {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      border: none;
+      border-radius: 14px;
+      color: #041226;
+      font-family: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 6px 20px rgba(0, 242, 254, 0.45);
+      transition: transform 0.15s;
+    }
+
+    button.btn-replay:active { transform: scale(0.96); }
+
+    /* Chat Button & Drawer */
     #chat-toggle-btn {
       position: fixed;
-      bottom: 24px;
-      right: 16px;
+      bottom: 84px;
+      right: 18px;
       width: 44px;
       height: 44px;
       border-radius: 50%;
       background: linear-gradient(135deg, #38bdf8, #818cf8);
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.25);
       color: #fff;
       font-size: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
       z-index: 40;
+      transition: transform 0.15s;
     }
+
+    #chat-toggle-btn:active { transform: scale(0.92); }
+
     #chat-unread-dot {
       position: absolute;
-      top: 2px;
-      right: 2px;
+      top: 1px;
+      right: 1px;
       width: 12px;
       height: 12px;
       background: #ef4444;
-      border: 2px solid #0b0f19;
+      border: 2px solid #070514;
       border-radius: 50%;
       display: none;
     }
-    .reaction-bar { display: flex; gap: 6px; margin-bottom: 8px; }
-    .reaction-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 20px;
-      padding: 4px 10px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+
     #chat-drawer {
       display: none;
       position: fixed;
-      bottom: 78px;
+      bottom: 136px;
       right: 16px;
-      width: 280px;
-      height: 320px;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      width: 290px;
+      height: 330px;
+      background: rgba(18, 12, 38, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
       flex-direction: column;
-      padding: 12px;
+      padding: 14px;
       z-index: 45;
     }
+
+    .reaction-bar { display: flex; gap: 6px; margin-bottom: 8px; }
+    .reaction-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      padding: 5px 9px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .reaction-btn:active { transform: scale(0.9); }
+
     #chat-messages {
       flex: 1;
       overflow-y: auto;
@@ -258,52 +535,51 @@
       scrollbar-width: none;
     }
     #chat-messages::-webkit-scrollbar { display: none; }
+
     .msg-bubble {
-      max-width: 80%;
+      max-width: 82%;
       padding: 6px 12px;
-      border-radius: 12px;
+      border-radius: 14px;
       word-break: break-word;
       line-height: 1.4;
     }
-    .msg-mine { align-self: flex-end; background: #3b82f6; color: #fff; border-bottom-right-radius: 2px; }
-    .msg-partner { align-self: flex-start; background: #334155; color: #f1f5f9; border-bottom-left-radius: 2px; }
+    .msg-mine { align-self: flex-end; background: #0284c7; color: #fff; border-bottom-right-radius: 3px; }
+    .msg-partner { align-self: flex-start; background: #334155; color: #f1f5f9; border-bottom-left-radius: 3px; }
+
     #chat-toast {
       display: none;
       position: fixed;
-      top: 65px;
-      background: rgba(15, 23, 42, 0.92);
-      border: 1px solid rgba(56, 189, 248, 0.4);
+      top: 68px;
+      background: rgba(18, 12, 38, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.5);
       color: #fff;
       padding: 6px 16px;
       border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
       z-index: 35;
-      animation: fadeInOut 3s forwards;
     }
-    @keyframes fadeInOut {
-      0% { opacity: 0; transform: translateY(-10px); }
-      15%, 85% { opacity: 1; transform: translateY(0); }
-      100% { opacity: 0; transform: translateY(-10px); }
-    }
+
     #chat-input-row { display: flex; gap: 6px; margin-top: 8px; }
     #chat-text-input {
       flex: 1;
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 10px;
       padding: 8px 10px;
       color: #fff;
+      font-family: inherit;
       font-size: 13px;
       outline: none;
     }
     #chat-send-btn {
       background: #38bdf8;
       border: none;
-      border-radius: 8px;
-      color: #000;
-      font-weight: 700;
+      border-radius: 10px;
+      color: #041226;
+      font-family: inherit;
+      font-weight: 800;
       padding: 0 12px;
       cursor: pointer;
     }
@@ -313,80 +589,124 @@
 
   <div id="chat-toast"></div>
 
-  <div id="hud">
-    <div class="player-tag">
-      <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--p1-color);"></span>
-      <span id="p1-title">P1:</span> <span id="p1-tile">Home (Locked)</span>
-    </div>
-    <div id="turn-badge" class="turn-badge">Connecting ⏳</div>
-    <div class="player-tag">
-      <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--p2-color);"></span>
-      <span id="p2-title">P2:</span> <span id="p2-tile">Home (Locked)</span>
-    </div>
-  </div>
+  <div id="game-container">
+    <!-- Top HUD -->
+    <div id="hud">
+      <!-- Player 1 Profile Card -->
+      <div class="player-card">
+        <div class="avatar-token-badge avatar-p1">⚡</div>
+        <div class="player-info">
+          <span class="player-name" id="p1-title">You (P1)</span>
+          <span class="player-tile-pill" id="p1-tile">Start (0)</span>
+          <div class="progress-bar-wrap">
+            <div id="p1-progress" class="progress-bar-fill p1"></div>
+          </div>
+        </div>
+      </div>
 
-  <div id="board-container">
-    <canvas id="boardCanvas" width="600" height="600"></canvas>
-  </div>
+      <!-- Turn & Match Controls -->
+      <div class="hud-center">
+        <div id="turn-badge" class="turn-badge">Connecting ⏳</div>
+        <button class="icon-btn-sound" onclick="toggleSound()" id="sound-btn" title="Toggle Sound">🔊 Sound</button>
+      </div>
 
-  <div id="controls-area">
-    <div class="dice-scene" onclick="handleDiceClick()">
-      <div id="dice-cube" class="dice-cube">
-        <div class="dice-face face-1">
-          <div></div><div></div><div></div>
-          <div></div><div class="dot red"></div><div></div>
-          <div></div><div></div><div></div>
-        </div>
-        <div class="dice-face face-2">
-          <div class="dot"></div><div></div><div></div>
-          <div></div><div></div><div></div>
-          <div></div><div></div><div class="dot"></div>
-        </div>
-        <div class="dice-face face-3">
-          <div class="dot"></div><div></div><div></div>
-          <div></div><div class="dot"></div><div></div>
-          <div></div><div></div><div class="dot"></div>
-        </div>
-        <div class="dice-face face-4">
-          <div class="dot"></div><div></div><div class="dot"></div>
-          <div></div><div></div><div></div>
-          <div class="dot"></div><div></div><div class="dot"></div>
-        </div>
-        <div class="dice-face face-5">
-          <div class="dot"></div><div></div><div class="dot"></div>
-          <div></div><div class="dot"></div><div></div>
-          <div class="dot"></div><div></div><div class="dot"></div>
-        </div>
-        <div class="dice-face face-6">
-          <div class="dot"></div><div></div><div class="dot"></div>
-          <div class="dot"></div><div></div><div class="dot"></div>
-          <div class="dot"></div><div></div><div class="dot"></div>
+      <!-- Player 2 Profile Card -->
+      <div class="player-card right">
+        <div class="avatar-token-badge avatar-p2">🔥</div>
+        <div class="player-info">
+          <span class="player-name" id="p2-title">Partner (P2)</span>
+          <span class="player-tile-pill" id="p2-tile">Start (0)</span>
+          <div class="progress-bar-wrap">
+            <div id="p2-progress" class="progress-bar-fill p2"></div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="status-text" id="action-status">Waiting for partner to join...</div>
+
+    <!-- Board Arena Canvas -->
+    <div id="board-wrapper">
+      <div id="board-container">
+        <canvas id="boardCanvas" width="600" height="600"></canvas>
+      </div>
+    </div>
+
+    <!-- Controls Area -->
+    <div id="controls-area">
+      <div class="dice-container-wrap" onclick="handleDiceClick()">
+        <div class="dice-scene">
+          <div id="dice-cube" class="dice-cube">
+            <div class="dice-face face-1">
+              <div></div><div></div><div></div>
+              <div></div><div class="dot red"></div><div></div>
+              <div></div><div></div><div></div>
+            </div>
+            <div class="dice-face face-2">
+              <div class="dot"></div><div></div><div></div>
+              <div></div><div></div><div></div>
+              <div></div><div></div><div class="dot"></div>
+            </div>
+            <div class="dice-face face-3">
+              <div class="dot"></div><div></div><div></div>
+              <div></div><div class="dot"></div><div></div>
+              <div></div><div></div><div class="dot"></div>
+            </div>
+            <div class="dice-face face-4">
+              <div class="dot"></div><div></div><div class="dot"></div>
+              <div></div><div></div><div></div>
+              <div class="dot"></div><div></div><div class="dot"></div>
+            </div>
+            <div class="dice-face face-5">
+              <div class="dot"></div><div></div><div class="dot"></div>
+              <div></div><div class="dot"></div><div></div>
+              <div class="dot"></div><div></div><div class="dot"></div>
+            </div>
+            <div class="dice-face face-6">
+              <div class="dot"></div><div></div><div class="dot"></div>
+              <div class="dot"></div><div></div><div class="dot"></div>
+              <div class="dot"></div><div></div><div class="dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-info-box">
+        <div class="action-title" id="action-title">Waiting to connect...</div>
+        <div class="action-subtitle" id="action-status">Pairing with opponent...</div>
+      </div>
+
+      <button id="btn-roll-action" class="btn-roll-cta disabled" onclick="handleDiceClick()">
+        <span>ROLL</span>
+        <span>🎲</span>
+      </button>
+    </div>
   </div>
 
+  <!-- Fullscreen Modal Overlay -->
   <div id="overlay">
-    <h2 id="modal-title">Connecting...</h2>
-    <p id="modal-desc" style="color: #cbd5e1; font-size: 14px;">Waiting for your partner to open the game...</p>
-    <button id="btn-replay" class="btn-replay" style="display: none;" onclick="restartMatch()">🔄 Play Again</button>
+    <div class="glass-modal">
+      <h2 class="modal-title" id="modal-title">Connecting...</h2>
+      <p class="modal-desc" id="modal-desc">Waiting for your partner to open the game...</p>
+      <button id="btn-replay" class="btn-replay" style="display: none;" onclick="restartMatch()">🔄 Play Again</button>
+    </div>
   </div>
 
+  <!-- Chat Floating Action Button -->
   <button id="chat-toggle-btn" onclick="toggleChat()">
     💬
     <span id="chat-unread-dot"></span>
   </button>
 
+  <!-- Chat Drawer -->
   <div id="chat-drawer">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-      <span style="font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Match Chat</span>
-      <span onclick="toggleChat()" style="cursor: pointer; font-size: 16px; color: #94a3b8;">✕</span>
+      <span style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Match Chat</span>
+      <span onclick="toggleChat()" style="cursor: pointer; font-size: 16px; color: #94a3b8; padding: 2px 4px;">✕</span>
     </div>
     <div class="reaction-bar">
       <button class="reaction-btn" onclick="sendQuickReaction('🎲')">🎲</button>
-      <button class="reaction-btn" onclick="sendQuickReaction('🐍')">🐍</button>
       <button class="reaction-btn" onclick="sendQuickReaction('🪜')">🪜</button>
+      <button class="reaction-btn" onclick="sendQuickReaction('🐍')">🐍</button>
+      <button class="reaction-btn" onclick="sendQuickReaction('🔥')">🔥</button>
       <button class="reaction-btn" onclick="sendQuickReaction('GG!')">GG</button>
     </div>
     <div id="chat-messages"></div>
@@ -397,95 +717,125 @@
   </div>
 
   <script>
+    // =========================================================================
+    // Web Audio Synthesizer Engine
+    // =========================================================================
+    let isMuted = localStorage.getItem("snakes_muted") === "true";
+    const soundBtn = document.getElementById("sound-btn");
+    soundBtn.innerText = isMuted ? "🔇 Muted" : "🔊 Sound";
+
+    function toggleSound() {
+      isMuted = !isMuted;
+      localStorage.setItem("snakes_muted", isMuted ? "true" : "false");
+      soundBtn.innerText = isMuted ? "🔇 Muted" : "🔊 Sound";
+      if (!isMuted && AudioEngine) AudioEngine.init();
+    }
+
     const AudioEngine = {
       ctx: null,
       init() {
-        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
       },
       playHop() {
+        if (isMuted) return;
         try {
           this.init();
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "sine";
-          osc.frequency.setValueAtTime(320, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(540, this.ctx.currentTime + 0.08);
-          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+          osc.frequency.setValueAtTime(360, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(620, this.ctx.currentTime + 0.09);
+          gain.gain.setValueAtTime(0.22, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.09);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start();
-          osc.stop(this.ctx.currentTime + 0.08);
+          osc.stop(this.ctx.currentTime + 0.09);
         } catch(e){}
       },
       playDice() {
+        if (isMuted) return;
         try {
           this.init();
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "triangle";
-          osc.frequency.setValueAtTime(200, this.ctx.currentTime);
-          osc.frequency.linearRampToValueAtTime(380, this.ctx.currentTime + 0.2);
-          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+          osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(460, this.ctx.currentTime + 0.18);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start();
-          osc.stop(this.ctx.currentTime + 0.2);
+          osc.stop(this.ctx.currentTime + 0.18);
         } catch(e){}
       },
       playLadder() {
+        if (isMuted) return;
         try {
           this.init();
-          [261.63, 329.63, 392.00, 523.25].forEach((freq, i) => {
+          [293.66, 369.99, 440.00, 587.33, 739.99].forEach((freq, i) => {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             osc.type = "triangle";
             osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.25, this.ctx.currentTime + i * 0.08);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.08 + 0.2);
+            const t = this.ctx.currentTime + i * 0.07;
+            gain.gain.setValueAtTime(0.2, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
-            osc.start(this.ctx.currentTime + i * 0.08);
-            osc.stop(this.ctx.currentTime + i * 0.08 + 0.2);
+            osc.start(t);
+            osc.stop(t + 0.22);
           });
         } catch(e){}
       },
       playSnake() {
+        if (isMuted) return;
         try {
           this.init();
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = "sawtooth";
-          osc.frequency.setValueAtTime(350, this.ctx.currentTime);
-          osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.35);
-          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+          osc.frequency.setValueAtTime(380, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.4);
+          gain.gain.setValueAtTime(0.26, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start();
-          osc.stop(this.ctx.currentTime + 0.35);
+          osc.stop(this.ctx.currentTime + 0.4);
         } catch(e){}
       },
       playWin() {
+        if (isMuted) return;
         try {
           this.init();
-          [440, 554, 659, 880].forEach((freq, i) => {
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
             osc.type = "triangle";
             osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.25, this.ctx.currentTime + i * 0.1);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.1 + 0.3);
+            const t = this.ctx.currentTime + i * 0.09;
+            gain.gain.setValueAtTime(0.26, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
-            osc.start(this.ctx.currentTime + i * 0.1);
-            osc.stop(this.ctx.currentTime + i * 0.1 + 0.3);
+            osc.start(t);
+            osc.stop(t + 0.35);
           });
         } catch(e){}
       }
     };
 
+    // =========================================================================
+    // Game Rules & Networking Setup
+    // =========================================================================
     const urlParams = new URLSearchParams(window.location.search);
     const myUserId = urlParams.get("user_id") || "";
     const chatId = urlParams.get("chat_id") || "";
@@ -541,6 +891,10 @@
     const canvas = document.getElementById("boardCanvas");
     const ctx = canvas.getContext("2d");
 
+    // Dynamic particle & floating event notification list
+    let particles = [];
+    let boardFloaters = [];
+
     function getTileCenter(tileNum) {
       if (tileNum <= 0) return { x: 30, y: 570 };
       const index = tileNum - 1;
@@ -564,14 +918,42 @@
       6: "rotateX(90deg) rotateY(0deg)"
     };
 
+    function spawnParticleBurst(x, y, color, count = 12) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4.5 + 1.5;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.0,
+          color,
+          radius: Math.random() * 3 + 2,
+          alpha: 1,
+          decay: Math.random() * 0.03 + 0.02
+        });
+      }
+    }
+
+    function addBoardFloater(x, y, text, color = "#fbbf24") {
+      boardFloaters.push({
+        x,
+        y,
+        text,
+        color,
+        alpha: 1,
+        vy: -1.4
+      });
+    }
+
     function autoConnect() {
       peer = new Peer(hostRoomId, PEER_CONFIG);
 
       peer.on("open", () => {
         role = "host";
         hostUserId = myUserId;
-        document.getElementById("p1-title").innerText = "You (P1):";
-        document.getElementById("p2-title").innerText = "Partner (P2):";
+        document.getElementById("p1-title").innerText = "You (P1)";
+        document.getElementById("p2-title").innerText = "Partner (P2)";
         document.getElementById("modal-title").innerText = "Waiting for Partner...";
         document.getElementById("modal-desc").innerText = "Game will start as soon as your partner opens the game!";
       });
@@ -595,8 +977,8 @@
       peer = new Peer(PEER_CONFIG);
       peer.on("open", () => {
         conn = peer.connect(hostRoomId, { reliable: true });
-        document.getElementById("p1-title").innerText = "Partner (P1):";
-        document.getElementById("p2-title").innerText = "You (P2):";
+        document.getElementById("p1-title").innerText = "Partner (P1)";
+        document.getElementById("p2-title").innerText = "You (P2)";
         document.getElementById("modal-title").innerText = "Connecting to Host...";
         setupDataChannel();
       });
@@ -783,7 +1165,6 @@
         specialType = 2;
       }
 
-      // Rule: Strict === 6 check for extra roll
       const nextTurnRole = (rollVal === 6) ? playerRole : (playerRole === "host" ? "client" : "host");
 
       if (conn && conn.open) {
@@ -804,6 +1185,8 @@
       isAnimatingMove = true;
       updateStatusText();
 
+      const color = playerRole === "host" ? "#00f2fe" : "#ff0844";
+
       for (const stepTile of path) {
         if (playerRole === "host") p1Tile = stepTile;
         else p2Tile = stepTile;
@@ -811,23 +1194,35 @@
         const targetCoords = getTileCenter(stepTile);
         await hopToCoordinate(playerRole, targetCoords);
         AudioEngine.playHop();
+        spawnParticleBurst(targetCoords.x, targetCoords.y, color, 8);
         await new Promise(r => setTimeout(r, 60));
       }
 
       if (specialType > 0) {
         await new Promise(r => setTimeout(r, 180));
-        if (specialType === 1) AudioEngine.playLadder();
-        else if (specialType === 2) AudioEngine.playSnake();
+        const finalCoords = getTileCenter(finalTile);
+
+        if (specialType === 1) {
+          AudioEngine.playLadder();
+          spawnParticleBurst(finalCoords.x, finalCoords.y, "#fbbf24", 22);
+          addBoardFloater(finalCoords.x, finalCoords.y - 15, "🪜 LADDER BOOST!", "#fbbf24");
+        } else if (specialType === 2) {
+          AudioEngine.playSnake();
+          spawnParticleBurst(finalCoords.x, finalCoords.y, "#ef4444", 22);
+          addBoardFloater(finalCoords.x, finalCoords.y - 15, "🐍 SNAKE SLIDE!", "#ef4444");
+        }
 
         if (playerRole === "host") p1Tile = finalTile;
         else p2Tile = finalTile;
 
-        const finalCoords = getTileCenter(finalTile);
         await glideToCoordinate(playerRole, finalCoords);
       }
 
-      document.getElementById("p1-tile").innerText = p1Tile === 0 ? "Home (Locked)" : `Tile ${p1Tile}`;
-      document.getElementById("p2-tile").innerText = p2Tile === 0 ? "Home (Locked)" : `Tile ${p2Tile}`;
+      // Update tile pills & progress bars
+      document.getElementById("p1-tile").innerText = p1Tile === 0 ? "Start (0)" : `Tile ${p1Tile}/100`;
+      document.getElementById("p2-tile").innerText = p2Tile === 0 ? "Start (0)" : `Tile ${p2Tile}/100`;
+      document.getElementById("p1-progress").style.width = `${Math.min(100, p1Tile)}%`;
+      document.getElementById("p2-progress").style.width = `${Math.min(100, p2Tile)}%`;
 
       isAnimatingMove = false;
       rolledNumber = 0;
@@ -851,7 +1246,7 @@
 
           const curX = startPos.x + (target.x - startPos.x) * progress;
           const curY = startPos.y + (target.y - startPos.y) * progress;
-          const hop = Math.sin(progress * Math.PI) * 22;
+          const hop = Math.sin(progress * Math.PI) * 26;
 
           if (playerRole === "host") {
             p1RenderPos = { x: curX, y: curY, hopOffset: hop };
@@ -874,7 +1269,7 @@
     function glideToCoordinate(playerRole, target) {
       return new Promise((resolve) => {
         const startPos = playerRole === "host" ? { ...p1RenderPos } : { ...p2RenderPos };
-        const duration = 400;
+        const duration = 440;
         const startTime = performance.now();
 
         function animate(now) {
@@ -899,63 +1294,205 @@
 
     function updateStatusText() {
       const isMyTurn = (role === currentTurnRole);
+      const actionTitle = document.getElementById("action-title");
       const statusText = document.getElementById("action-status");
       const turnBadge = document.getElementById("turn-badge");
+      const btnRoll = document.getElementById("btn-roll-action");
       const myTile = (role === "host") ? p1Tile : p2Tile;
 
       if (isMyTurn) {
         turnBadge.innerText = "👉 YOUR TURN";
         turnBadge.className = "turn-badge turn-active";
+        btnRoll.className = "btn-roll-cta ready";
 
         if (isDiceRolling) {
-          statusText.innerText = "Rolling dice...";
+          actionTitle.innerText = "Rolling Dice...";
+          statusText.innerText = "Tumbling 3D dice...";
         } else if (isAnimatingMove) {
-          statusText.innerText = `Moving ${rolledNumber} tiles...`;
+          actionTitle.innerText = `Advancing ${rolledNumber} Tiles`;
+          statusText.innerText = "Hopping along the path...";
         } else {
+          actionTitle.innerText = (myTile === 0) ? "Roll 1 to Enter" : "Your Turn to Roll";
           statusText.innerText = (myTile === 0) 
-            ? "Tap dice! (Roll 1 to unlock onto board)" 
-            : "Tap the 3D dice to roll!";
+            ? "Tap dice! (Need 1 to unlock onto board)" 
+            : "Tap the dice or ROLL button!";
         }
       } else {
         turnBadge.innerText = "Partner's Turn";
         turnBadge.className = "turn-badge";
-        statusText.innerText = isAnimatingMove ? "Partner is moving..." : "Waiting for partner to roll...";
+        btnRoll.className = "btn-roll-cta disabled";
+
+        actionTitle.innerText = "Partner's Turn";
+        statusText.innerText = isAnimatingMove ? "Partner is advancing..." : "Waiting for partner to roll...";
       }
     }
 
+    // =========================================================================
+    // 3D Gem-Cut Token Rendering Engine
+    // =========================================================================
+    function drawRealisticToken(ctx, x, y, hopOffset, roleType, isTurn, tileNum) {
+      ctx.save();
+
+      const isP1 = (roleType === "host");
+      const shadowScale = Math.max(0.35, 1 - hopOffset / 38);
+      const tokenY = y - hopOffset;
+
+      // 1. Dynamic 3D Drop Shadow on board surface
+      ctx.save();
+      ctx.translate(x, y + 10);
+      ctx.scale(1, 0.42);
+      ctx.beginPath();
+      ctx.arc(0, 0, 16 * shadowScale, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.5 * shadowScale})`;
+      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+      ctx.shadowBlur = 8 + hopOffset * 0.4;
+      ctx.fill();
+      ctx.restore();
+
+      // 2. Active Player Turn Ripple / Breathing Glow
+      if (isTurn) {
+        const pulse = (Math.sin(performance.now() * 0.007) + 1) * 0.5;
+        const glowRadius = 22 + pulse * 6;
+        const rippleGrad = ctx.createRadialGradient(x, tokenY, 10, x, tokenY, glowRadius);
+        rippleGrad.addColorStop(0, isP1 ? "rgba(0, 242, 254, 0.5)" : "rgba(255, 8, 68, 0.5)");
+        rippleGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+        ctx.fillStyle = rippleGrad;
+        ctx.beginPath();
+        ctx.arc(x, tokenY, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = isP1 ? `rgba(56, 189, 248, ${0.6 + 0.4 * pulse})` : `rgba(244, 63, 94, ${0.6 + 0.4 * pulse})`;
+        ctx.lineWidth = 2 + pulse * 1.5;
+        ctx.beginPath();
+        ctx.arc(x, tokenY, 20 + pulse * 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 3. Metallic Pawn Outer Rim / Bezel Ring
+      const rimGrad = ctx.createLinearGradient(x - 16, tokenY - 16, x + 16, tokenY + 16);
+      rimGrad.addColorStop(0, "#ffffff");
+      rimGrad.addColorStop(0.3, isP1 ? "#38bdf8" : "#fb7185");
+      rimGrad.addColorStop(0.7, isP1 ? "#0369a1" : "#9f1239");
+      rimGrad.addColorStop(1, "#0f172a");
+
+      ctx.beginPath();
+      ctx.arc(x, tokenY, 16, 0, Math.PI * 2);
+      ctx.fillStyle = rimGrad;
+      ctx.shadowColor = isP1 ? "rgba(0, 242, 254, 0.75)" : "rgba(255, 8, 68, 0.75)";
+      ctx.shadowBlur = isTurn ? 16 : 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // 4. Vibrant Gemstone Core (Spherical 3D Radial Depth)
+      const gemGrad = ctx.createRadialGradient(x - 5, tokenY - 5, 2, x, tokenY, 14);
+      if (isP1) {
+        gemGrad.addColorStop(0, "#e0f2fe");
+        gemGrad.addColorStop(0.35, "#38bdf8");
+        gemGrad.addColorStop(0.75, "#0284c7");
+        gemGrad.addColorStop(1, "#0c4a6e");
+      } else {
+        gemGrad.addColorStop(0, "#ffe4e6");
+        gemGrad.addColorStop(0.35, "#fb7185");
+        gemGrad.addColorStop(0.75, "#e11d48");
+        gemGrad.addColorStop(1, "#881337");
+      }
+
+      ctx.beginPath();
+      ctx.arc(x, tokenY, 13, 0, Math.PI * 2);
+      ctx.fillStyle = gemGrad;
+      ctx.fill();
+
+      // 5. Curved Glass Specular Highlight (High Gloss Finish)
+      ctx.beginPath();
+      ctx.ellipse(x - 3, tokenY - 5, 7, 3.5, -Math.PI / 5, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+      ctx.fill();
+
+      // 6. Stamped Pawn Emblem Icon (⚡ or 🔥)
+      ctx.font = "bold 13px 'Outfit', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(isP1 ? "⚡" : "🔥", x, tokenY + 1);
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // Canvas Animation Loop
+    // =========================================================================
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // P1 (Cyan Token)
-      const p1X = p1RenderPos.x - (p1Tile === p2Tile && p1Tile > 0 ? 8 : 0);
-      const p1Y = p1RenderPos.y - p1RenderPos.hopOffset;
-      ctx.fillStyle = "#00f2fe";
-      ctx.shadowColor = "rgba(0, 242, 254, 0.7)";
-      ctx.shadowBlur = (role === "host" && currentTurnRole === "host") ? 16 : 6;
-      ctx.beginPath();
-      ctx.arc(p1X, p1Y, 13, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
+      // 1. Render P1 (Cyan Gem Pawn)
+      const p1X = p1RenderPos.x - (p1Tile === p2Tile && p1Tile > 0 ? 9 : 0);
+      const p1Y = p1RenderPos.y;
+      const isP1Turn = (currentTurnRole === "host");
+      drawRealisticToken(ctx, p1X, p1Y, p1RenderPos.hopOffset, "host", isP1Turn, p1Tile);
 
-      // P2 (Red Token)
-      const p2X = p2RenderPos.x + (p1Tile === p2Tile && p1Tile > 0 ? 8 : 0);
-      const p2Y = p2RenderPos.y - p2RenderPos.hopOffset;
-      ctx.fillStyle = "#ff0844";
-      ctx.shadowColor = "rgba(255, 8, 68, 0.7)";
-      ctx.shadowBlur = (role === "client" && currentTurnRole === "client") ? 16 : 6;
-      ctx.beginPath();
-      ctx.arc(p2X, p2Y, 13, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
+      // 2. Render P2 (Ruby Gem Pawn)
+      const p2X = p2RenderPos.x + (p1Tile === p2Tile && p1Tile > 0 ? 9 : 0);
+      const p2Y = p2RenderPos.y;
+      const isP2Turn = (currentTurnRole === "client");
+      drawRealisticToken(ctx, p2X, p2Y, p2RenderPos.hopOffset, "client", isP2Turn, p2Tile);
 
-      ctx.shadowBlur = 0;
+      // 3. Render Particles (Hop dust, ladders, snakes)
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.12; // gravity
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          i--;
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 4. Render Board Event Float Notifications
+      for (let i = 0; i < boardFloaters.length; i++) {
+        const f = boardFloaters[i];
+        f.y += f.vy;
+        f.alpha -= 0.018;
+
+        if (f.alpha <= 0) {
+          boardFloaters.splice(i, 1);
+          i--;
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, f.alpha);
+        ctx.font = "900 16px 'Outfit', sans-serif";
+        ctx.fillStyle = f.color;
+        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+        ctx.shadowBlur = 8;
+        ctx.fillText(f.text, f.x, f.y);
+        ctx.restore();
+      }
+
       requestAnimationFrame(render);
     }
 
+    // =========================================================================
+    // Match Over & Telegram High Score Sync
+    // =========================================================================
     let winLogged = false;
 
     function endSnakesMatch(winnerRole) {
@@ -968,7 +1505,7 @@
       if (isWinner) AudioEngine.playWin();
       document.getElementById("overlay").style.display = "flex";
       document.getElementById("modal-title").innerText = isWinner ? "🏆 YOU REACHED 100!" : "💔 Partner Won!";
-      document.getElementById("modal-desc").innerText = isWinner ? "You conquered the board and reached Tile 100!" : "Partner conquered Tile 100!";
+      document.getElementById("modal-desc").innerText = isWinner ? "You conquered the board and reached Tile 100!" : "Partner reached Tile 100 first!";
       document.getElementById("btn-replay").style.display = (role === "host") ? "inline-block" : "none";
 
       const winningUserId = (winnerRole === "host") ? hostUserId : clientUserId;
@@ -1050,6 +1587,9 @@
       } catch (e) {}
     }
 
+    // =========================================================================
+    // In-Game Chat System
+    // =========================================================================
     let isChatOpen = false;
     function toggleChat() {
       isChatOpen = !isChatOpen;
