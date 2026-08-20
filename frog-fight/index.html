@@ -644,42 +644,66 @@
       const myFrog = (myRole === "host") ? frogTop : frogBottom;
       if (myFrog.isJumping || myFrog.isRespawning) return;
 
-      AudioEngine.playLeap();
-      myFrog.isJumping = true;
-      myFrog.jumpProgress = 0;
-      myFrog.jumpStartX = myFrog.x;
-      myFrog.jumpStartY = myFrog.y;
-
-      const jumpDistance = Math.min(width * 0.75, 340);
-      myFrog.jumpTargetX = myFrog.x + Math.cos(myFrog.angle) * jumpDistance;
-      myFrog.jumpTargetY = myFrog.y + Math.sin(myFrog.angle) * jumpDistance;
-
-      waterRipples.push({ x: myFrog.x, y: myFrog.y, r: 8, maxR: 35, alpha: 0.8 });
+      executeFrogJump(myFrog, myFrog.angle);
 
       broadcastNetwork({
         type: "JUMP",
         role: myRole,
-        angle: myFrog.angle,
-        startX: myFrog.jumpStartX,
-        startY: myFrog.jumpStartY,
-        targetX: myFrog.jumpTargetX,
-        targetY: myFrog.jumpTargetY
+        angle: myFrog.angle
       });
     }
 
-    function checkFrogLanding(frog, opponent) {
-      let landedPad = null;
-      for (const pad of pads) {
-        const dx = frog.x - pad.x;
-        const dy = frog.y - pad.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < pad.radius * 1.05) {
-          landedPad = pad;
+    function executeFrogJump(frog, angle) {
+      const currentPad = pads[frog.padIndex];
+      if (!currentPad) return;
+
+      frog.isJumping = true;
+      frog.jumpProgress = 0;
+      frog.angle = angle;
+      frog.jumpStartX = currentPad.x;
+      frog.jumpStartY = currentPad.y;
+
+      // Check if facing direction aligns with any other lily pad
+      let matchedPad = null;
+      const minAngleThreshold = 0.32; // ~18 degree facing cone
+
+      const candidatePads = pads
+        .filter(p => p.id !== currentPad.id)
+        .map(p => {
+          const targetAngle = Math.atan2(p.y - currentPad.y, p.x - currentPad.x);
+          let diff = Math.abs((angle - targetAngle + Math.PI * 3) % (Math.PI * 2) - Math.PI);
+          const dist = Math.hypot(p.x - currentPad.x, p.y - currentPad.y);
+          return { pad: p, diff, dist };
+        })
+        .sort((a, b) => a.dist - b.dist);
+
+      for (const c of candidatePads) {
+        if (c.diff < minAngleThreshold) {
+          matchedPad = c.pad;
           break;
         }
       }
 
-      if (landedPad) {
+      if (matchedPad) {
+        // Frog is facing a lily pad -> Leaps and lands EXACTLY centered on it!
+        frog.jumpTargetX = matchedPad.x;
+        frog.jumpTargetY = matchedPad.y;
+        frog.intendedPadId = matchedPad.id;
+      } else {
+        // Frog is NOT facing any lily pad -> Lands in open water!
+        const waterJumpDist = Math.min(width * 0.40, 175);
+        frog.jumpTargetX = currentPad.x + Math.cos(angle) * waterJumpDist;
+        frog.jumpTargetY = currentPad.y + Math.sin(angle) * waterJumpDist;
+        frog.intendedPadId = null;
+      }
+
+      AudioEngine.playLeap();
+      waterRipples.push({ x: frog.jumpStartX, y: frog.jumpStartY, r: 8, maxR: 35, alpha: 0.8 });
+    }
+
+    function checkFrogLanding(frog, opponent) {
+      if (frog.intendedPadId !== null && frog.intendedPadId !== undefined) {
+        const landedPad = pads[frog.intendedPadId];
         frog.padIndex = landedPad.id;
         frog.x = landedPad.x;
         frog.y = landedPad.y;
@@ -703,6 +727,7 @@
           }
         }
       } else {
+        // Landed in water -> Splash & Penalty respawn!
         frog.isJumping = false;
         frog.isRespawning = true;
         frog.respawnTimer = 1.1;
@@ -866,15 +891,7 @@
 
       if (data.type === "JUMP") {
         const frog = (data.role === "host") ? frogTop : frogBottom;
-        AudioEngine.playLeap();
-        frog.isJumping = true;
-        frog.jumpProgress = 0;
-        frog.angle = data.angle;
-        frog.jumpStartX = data.startX;
-        frog.jumpStartY = data.startY;
-        frog.jumpTargetX = data.targetX;
-        frog.jumpTargetY = data.targetY;
-        waterRipples.push({ x: frog.jumpStartX, y: frog.jumpStartY, r: 8, maxR: 35, alpha: 0.8 });
+        executeFrogJump(frog, data.angle);
       }
       else if (data.type === "SPAWN_BUG") {
         stationaryBugs.push(data.bug);
